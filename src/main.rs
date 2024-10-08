@@ -1,4 +1,5 @@
-use ggez::glam::Vec2;
+use crevice::std140::AsStd140;
+use ggez::{glam::{Vec2, Vec4}, mint::Vector4};
 
 struct MainState
 {
@@ -6,7 +7,7 @@ struct MainState
     screen: ggez::graphics::ScreenImage,
     input_state: InputState,
     assets: Assets,
-    player: Player
+    player: Player,
 }
 
 impl MainState
@@ -48,24 +49,27 @@ struct Player
     vel: Vec2,
     feet_offset: Vec2,
     jump: Option<Message<()>>,
-    grounded: bool
+    grounded: bool,
 }
 
 impl Player
 {
+    const JUMP_TIME_BUFFER: f32 = 0.25;
+    const COYOTE_TIME: f32 = 0.25;
+
     fn issue_jump(&mut self)
     {
         // a jump message with some lifetime
-        self.jump = Some(Message((), std::time::Duration::from_secs_f32(0.25)));
+        self.jump = Some(Message((), Self::JUMP_TIME_BUFFER));
     }
 }
 
-#[derive(Debug, Clone)]
-struct Message<T>(T, std::time::Duration);
+#[derive(Debug, Clone, Copy)]
+struct Message<T>(T, f32);
 
 impl<T> Message<T>
 {
-    fn act< ACTION>(&mut self, predicate: bool, mut action: ACTION) -> ()
+    fn act<ACTION>(mut self, predicate: bool, mut action: ACTION, dt: f32) -> Option<Self>
     where
         // PRED: FnOnce() -> bool,
         ACTION: FnMut() -> (),
@@ -73,61 +77,38 @@ impl<T> Message<T>
         if predicate
         {
             action();
+            None
         }
         else
         {
-
+            self.1 -= dt;
+            if self.1 < 0.0 
+            { 
+                // println!("timer expired"); 
+                None 
+            }
+            else { Some(self) }
         }
     }
 }
 
+
 impl ggez::event::EventHandler for Player
 {
     fn update(&mut self, context: &mut ggez::Context) -> Result<(), ggez::GameError> {
-        match &self.jump
+        self.jump = match self.jump
         {
-            Some(message) => 
+            Some(m) => 
             {
-                if self.grounded
-                {
-                    self.vel.y -= 30.0;
-                    self.jump = None;
-                    self.grounded = false;
-                }
-                else
-                {
-                    self.jump = match message.1.checked_sub(context.time.average_delta())
-                    {
-                        Some(m) => Some(Message((), m)),
-                        None => { println!("timer expired"); None },
-                    }
-                }
+                m.act(self.grounded, || {self.vel.y -= 30.0; self.grounded = false; }, context.time.average_delta().as_secs_f32())
             },
-            None => (),
+            None => None,
         };
-        // if self.sent_jump && self.grounded
-        // {
-        //     self.vel.y -= 20.;
-        //     self.sent_jump = false;
-        //     self.grounded = false;
-        // }
-
-        // if let Some(m) = &mut self.jump.clone()
-        // {
-        //     m.act(
-        //     self.grounded, 
-        //     ||
-        //     {
-        //         self.vel.y -= 30.0;
-        //         self.jump = None;
-        //         self.grounded = false;    
-        //     });
-        // }
 
         // gravity
-        self.vel.y += 9.8 / 60.0;
+        self.vel.y += 9.8 / 30.0;
 
-        self.pos += self.vel / 60.0;
+        self.pos += self.vel / 30.0;
 
         if (self.pos + self.feet_offset).y > 400.0
         {
@@ -199,6 +180,35 @@ impl ggez::event::EventHandler for MainState
         let draw_params = graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
         canvas.draw(&self.assets.player_image, draw_params);
 
+
+        // let a= 
+        //     graphics::MeshBuilder::new().rectangle(graphics::DrawMode::Fill(FillOptions::DEFAULT), graphics::Rect::new(20.0, 20.0, 20.0, 20.0), Color::CYAN)?.build();
+        // let a = graphics::Mesh::new_rectangle(context, graphics::DrawMode::Fill(graphics::FillOptions::DEFAULT), graphics::Rect::new(0.0, 0.0, 400.0, 400.0), Color::CYAN)?;
+        let a = graphics::Quad;
+        let shader = graphics::ShaderBuilder::new().fragment_path("/shader_a.wgsl").build(context)?;
+        canvas.set_shader(&shader);
+        // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
+        let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
+        // let muu = mu.as_std140();
+        // let params = graphics::ShaderParamsBuilder::new(&mu.as_std140());
+        // let params = graphics::ShaderParamsBuilder::new(&mu);
+
+        // let bb: graphics::ShaderParams<CustomColor>;
+        let color: Vector4<f32> = [1.0, 0.0, 0.0, 0.5].into();
+        let mut mu = graphics::ShaderParamsBuilder::new(&color).build(context);
+        canvas.set_shader_params(&mu);
+
+        canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(0.0, 0.0)).scale(Vec2::new(400.0, 400.0)));
+        // let mu = MyUniform { rate: 0.5 };
+
+        mu.set_uniforms(context, &[0.0, 0.0, 1.0, 0.5].into());
+        canvas.set_shader_params(&mu);
+        canvas.set_blend_mode(graphics::BlendMode::ALPHA);
+        
+        canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(20.0, 20.0)).scale(Vec2::new(360.0, 360.0)));
+        
+        // let params = graphics::ShaderParamsBuilder::new(&mu);
+
         canvas.finish(context)?;
 
         // context.gfx.present(&self.screen.image(context))?;
@@ -224,6 +234,12 @@ impl ggez::event::EventHandler for MainState
         Ok(())
         // todo!()
     }
+}
+
+#[repr(C)]
+#[derive(crevice::std140::AsStd140, Clone)]
+struct CustomColor {
+    color: Vector4<f32>
 }
 
 fn main() -> ggez::GameResult
