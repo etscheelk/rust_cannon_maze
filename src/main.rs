@@ -25,73 +25,20 @@ impl MainState
         let s = MainState
         {
             called: 0,
-            input_state: InputState {  },
+            input_state: InputState { ..std::default::Default::default() },
             screen,
             assets,
-            player: Player::default().feet_offset(Vec2::new(0.0, 10.0))
+            player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false)
         };
 
         Ok(s)
     }
 }
 
-#[derive(Default, Debug, Clone)]
-struct Cell<'a>
-{
-    piece: Option<&'a Piece>,
-    index: u16,
-    pos: Vec2,
-    selected: bool
-}
-
-
-#[derive(Default, Debug, Clone)]
-struct Piece
-{
-    piece_type: PieceType,
-    piece_color: PieceColor
-}
-
-impl Piece
-{
-    fn move_piece(&mut self)
-    {
-
-    }
-}
-
-#[derive(Default, Debug, Clone, Copy)]
-#[non_exhaustive]
-enum PieceColor
-{
-    #[default]
-    Uncolored,
-    Light,
-    Dark
-}
-
-#[derive(Default, Debug, Clone, Copy)]
-#[non_exhaustive]
-enum PieceType
-{
-    #[default]
-    Pawn,
-    Rook, 
-    Bishop,
-    Knight,
-    Queen,
-    King,
-}
-
-enum CellColor
-{
-    Light,
-    Dark
-}
-
+#[derive(Default)]
 struct InputState
 {
-
+    i: i32,
 }
 
 #[derive(Default, Debug, Clone, derive_setters::Setters)]
@@ -99,24 +46,101 @@ struct Player
 {
     pos: Vec2,
     vel: Vec2,
-    feet_offset: Vec2
+    feet_offset: Vec2,
+    jump: Option<Message<()>>,
+    grounded: bool
+}
+
+impl Player
+{
+    fn issue_jump(&mut self)
+    {
+        // a jump message with some lifetime
+        self.jump = Some(Message((), std::time::Duration::from_secs_f32(0.25)));
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Message<T>(T, std::time::Duration);
+
+impl<T> Message<T>
+{
+    fn act< ACTION>(&mut self, predicate: bool, mut action: ACTION) -> ()
+    where
+        // PRED: FnOnce() -> bool,
+        ACTION: FnMut() -> (),
+    {
+        if predicate
+        {
+            action();
+        }
+        else
+        {
+
+        }
+    }
 }
 
 impl ggez::event::EventHandler for Player
 {
-    fn update(&mut self, _ctx: &mut ggez::Context) -> Result<(), ggez::GameError> {
-        self.vel.y += 4.9 / 60.0;
+    fn update(&mut self, context: &mut ggez::Context) -> Result<(), ggez::GameError> {
+        match &self.jump
+        {
+            Some(message) => 
+            {
+                if self.grounded
+                {
+                    self.vel.y -= 30.0;
+                    self.jump = None;
+                    self.grounded = false;
+                }
+                else
+                {
+                    self.jump = match message.1.checked_sub(context.time.average_delta())
+                    {
+                        Some(m) => Some(Message((), m)),
+                        None => { println!("timer expired"); None },
+                    }
+                }
+            },
+            None => (),
+        };
+        // if self.sent_jump && self.grounded
+        // {
+        //     self.vel.y -= 20.;
+        //     self.sent_jump = false;
+        //     self.grounded = false;
+        // }
+
+        // if let Some(m) = &mut self.jump.clone()
+        // {
+        //     m.act(
+        //     self.grounded, 
+        //     ||
+        //     {
+        //         self.vel.y -= 30.0;
+        //         self.jump = None;
+        //         self.grounded = false;    
+        //     });
+        // }
+
+        // gravity
+        self.vel.y += 9.8 / 60.0;
+
         self.pos += self.vel / 60.0;
 
         if (self.pos + self.feet_offset).y > 400.0
         {
             self.pos.y = 400.0 - self.feet_offset.y;
+            self.grounded = true;
+            self.vel.y = 0.0;
         }
 
         if self.pos.x > 400.0
         {
             self.pos.x = 0.0;
         }
+
 
         Ok(())
     }
@@ -136,6 +160,9 @@ impl Assets
     fn new(context: &mut ggez::Context) -> ggez::GameResult<Assets>
     {
         let player_image = ggez::graphics::Image::from_path(context, "/dogRight0.png")?;
+        
+        // white square
+        // let player_image = ggez::graphics::Image::from_color(context, 30, 30, None);
 
         Ok(Assets { player_image })
     }
@@ -146,10 +173,14 @@ impl ggez::event::EventHandler for MainState
     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
         
         
-
+        // fixed-update
         while context.time.check_update_time(60)
         {
             self.player.update(context)?;
+
+            self.player.pos.x = 20.0;
+
+            // println!("{:?}", self.player.pos);
         }
 
         Ok(())
@@ -162,17 +193,36 @@ impl ggez::event::EventHandler for MainState
         // Just clear the screen...
         use ggez::graphics::{self, Color};
         let mut canvas = 
-            graphics::Canvas::from_screen_image(context, &mut self.screen, Color::BLACK);
+            // graphics::Canvas::from_screen_image(context, &mut self.screen, Color::BLACK);
+            graphics::Canvas::from_frame(context, Color::BLACK);
 
         let draw_params = graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
         canvas.draw(&self.assets.player_image, draw_params);
 
         canvas.finish(context)?;
 
-        context.gfx.present(&self.screen.image(context))?;
+        // context.gfx.present(&self.screen.image(context))?;
 
         ggez::timer::yield_now();
         Ok(())
+    }
+
+    fn key_down_event(
+            &mut self,
+            ctx: &mut ggez::Context,
+            input: ggez::input::keyboard::KeyInput,
+            _repeated: bool,
+        ) -> ggez::GameResult 
+    {
+        use ggez::input::keyboard::KeyCode::*;
+        if input.keycode == Some(Space)
+        {
+            // self.player.sent_jump = true;
+            self.player.issue_jump();
+        }
+
+        Ok(())
+        // todo!()
     }
 }
 
