@@ -22,9 +22,25 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
     //     // return vec4f(0.0, 0.0, 1.0, 0.5);
     //     return in.color;
     // }
+    
+    // var can be modified
+    // var centered = in.uv * 2.0 - 1.0;
+
+    // let a = length(centered);
+
+    // if a < 0.5
+    // {
+    //     return vec4f(1.0);
+    // }
+    // else
+    // {
+    //     return vec4f(0.0, 0.0, 0.0, 1.0);
+    // }
+    
 
     // return vec4f(in.position.xyz / 400.0, 0.5);
 
     // return my_uniform.color;
-    return my_uniform.color;
+    // return my_uniform.color;
+    return vec4f(in.uv, 1.0, 0.5);
 }

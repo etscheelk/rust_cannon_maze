@@ -1,5 +1,4 @@
-use crevice::std140::AsStd140;
-use ggez::{glam::{Vec2, Vec4}, mint::Vector4};
+use ggez::{glam::Vec2, mint::{Point2, Vector2, Vector4}};
 
 struct MainState
 {
@@ -8,6 +7,7 @@ struct MainState
     input_state: InputState,
     assets: Assets,
     player: Player,
+    periscope: PeriscopeUniform
 }
 
 impl MainState
@@ -29,7 +29,8 @@ impl MainState
             input_state: InputState { ..std::default::Default::default() },
             screen,
             assets,
-            player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false)
+            player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false),
+            periscope: PeriscopeUniform::new([0.0, 0.0].into(), 0.5)
         };
 
         Ok(s)
@@ -95,47 +96,85 @@ impl<T> Message<T>
 
 /// A trait type specific to my game, recreating some of the functions of
 /// ggez::event::EventHandler, but with extra context of the main state and the modifiable canvas
-trait GameObject
+trait GameObject<I>
 {
-    fn update(&mut self, context: &mut ggez::Context, state: &MainState) -> ggez::GameResult;
-    fn draw(&self, context: &mut ggez::Context, state: &MainState, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult;
+    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult;
+    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult
+    {
+        Ok(())
+    }
 }
 
-impl ggez::event::EventHandler for Player
+// This is probably a terrible idea in terms of compartmentalization 
+impl GameObject<Player> for MainState
 {
-    fn update(&mut self, context: &mut ggez::Context) -> Result<(), ggez::GameError> {
-        self.jump = match self.jump
+    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
+        let player = &mut self.player;
+
+        player.jump = match player.jump
         {
             Some(m) => 
             {
-                m.act(self.grounded, || {self.vel.y -= 30.0; self.grounded = false; }, context.time.average_delta().as_secs_f32())
+                m.act(player.grounded, || {player.vel.y -= 30.0; player.grounded = false; }, context.time.average_delta().as_secs_f32())
             },
             None => None,
         };
 
         // gravity
-        self.vel.y += 9.8 / 30.0;
+        player.vel.y += 9.8 / 30.0;
 
-        self.pos += self.vel / 30.0;
+        player.pos += player.vel / 30.0;
 
-        if (self.pos + self.feet_offset).y > 400.0
+        if (player.pos + player.feet_offset).y > 400.0
         {
-            self.pos.y = 400.0 - self.feet_offset.y;
-            self.grounded = true;
-            self.vel.y = 0.0;
+            player.pos.y = 400.0 - player.feet_offset.y;
+            player.grounded = true;
+            player.vel.y = 0.0;
         }
 
-        if self.pos.x > 400.0
+        if player.pos.x > 400.0
         {
-            self.pos.x = 0.0;
+            player.pos.x = 0.0;
         }
-
 
         Ok(())
     }
 
-    fn draw(&mut self, _ctx: &mut ggez::Context) -> Result<(), ggez::GameError> {
-        todo!()
+    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
+        let draw_params = ggez::graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
+        canvas.draw(&self.assets.player_image, draw_params);
+
+        Ok(())
+    }
+}
+
+impl GameObject<PeriscopeUniform> for MainState
+{
+    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
+    {
+        let ps = &mut self.periscope;
+
+        ps.position = context.mouse.position().into();
+
+        Ok(())    
+    }
+
+    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 
+    {
+        
+        let ps = &self.periscope;
+        
+        use ggez::graphics;
+        // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
+        let shader = graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
+        canvas.set_shader(&shader);
+        let params = graphics::ShaderParamsBuilder::new(ps).build(context);
+        canvas.set_shader_params(&params);
+
+        let q = graphics::Quad;
+
+        canvas.draw(&q, graphics::DrawParam::new().scale(Vec2::new(400.0, 400.0)));
+        Ok(())
     }
 }
 
@@ -165,12 +204,17 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(60)
         {
-            self.player.update(context)?;
+
+            GameObject::<Player>::update(self, context)?;
+
+            // <self as GameObject>.self.update(context);
 
             self.player.pos.x = 20.0;
 
             // println!("{:?}", self.player.pos);
         }
+
+        GameObject::<PeriscopeUniform>::update(self, context)?;
 
         if context.time.ticks() % 100 == 0
         {
@@ -190,9 +234,9 @@ impl ggez::event::EventHandler for MainState
             // graphics::Canvas::from_screen_image(context, &mut self.screen, Color::BLACK);
             graphics::Canvas::from_frame(context, Color::BLACK);
 
-        let draw_params = graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
-        canvas.draw(&self.assets.player_image, draw_params);
-
+        // let draw_params = graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
+        // canvas.draw(&self.assets.player_image, draw_params);
+        GameObject::<Player>::draw(self, context, &mut canvas)?;
 
         // let a= 
         //     graphics::MeshBuilder::new().rectangle(graphics::DrawMode::Fill(FillOptions::DEFAULT), graphics::Rect::new(20.0, 20.0, 20.0, 20.0), Color::CYAN)?.build();
@@ -200,31 +244,27 @@ impl ggez::event::EventHandler for MainState
         let a = graphics::Quad;
         let shader = graphics::ShaderBuilder::new().fragment_path("/shader_a.wgsl").build(context)?;
         canvas.set_shader(&shader);
-        // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
-        // let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
-        let mu = CustomColor { color: [1.0, 0.0, 0.0, 0.5].into() };
-        let mut mu = graphics::ShaderParamsBuilder::new(&mu).build(context);
+        // // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
+        // // let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
+        let uniform = CustomColor { color: [1.0, 0.0, 0.0, 0.5].into() };
+        let uniform = graphics::ShaderParamsBuilder::new(&uniform).build(context);
 
-        // let mut mu = CustomColor { a: 0.5 };
-        // let muu = mu.as_std140();
-        // let params = graphics::ShaderParamsBuilder::new(&mu.as_std140());
-        // let params = graphics::ShaderParamsBuilder::new(&mu);
-        
-        // let bb: graphics::ShaderParams<CustomColor>;
-        // let color: Vector4<f32> = [1.0, 0.0, 0.0, 0.5].into();
-        // let mut mu = graphics::ShaderParamsBuilder::new(&color).build(context);
-        canvas.set_shader_params(&mu);
+        canvas.set_shader_params(&uniform);
 
         canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(0.0, 0.0)).scale(Vec2::new(400.0, 400.0)));
-        // let mu = MyUniform { rate: 0.5 };
+        // // let mu = MyUniform { rate: 0.5 };
 
-        mu.set_uniforms(context, &CustomColor { color: [0.0, 0.0, 1.0, 0.5].into() });
-        canvas.set_shader_params(&mu);
-        canvas.set_blend_mode(graphics::BlendMode::ALPHA);
+        // uniform.set_uniforms(context, &CustomColor { color: [0.0, 0.0, 1.0, 0.5].into() });
+        // canvas.set_shader_params(&uniform);
+        // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
         
-        canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(20.0, 20.0)).scale(Vec2::new(360.0, 360.0)));
+        // canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(20.0, 20.0)).scale(Vec2::new(360.0, 360.0)));
         
         // let params = graphics::ShaderParamsBuilder::new(&mu);
+
+        GameObject::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
+        
+
 
         canvas.finish(context)?;
 
@@ -253,12 +293,27 @@ impl ggez::event::EventHandler for MainState
     }
 }
 
-#[repr(C)]
+// #[repr(C)]
 #[derive(Clone, crevice::std140::AsStd140)]
 struct CustomColor 
 {
     color: Vector4<f32>
     // color: crevice::std140::Vec4
+}
+
+#[derive(Clone, crevice::std140::AsStd140)]
+struct PeriscopeUniform
+{
+    position: Point2<f32>,
+    width: f32
+}
+
+impl PeriscopeUniform
+{
+    fn new(position: Point2<f32>, width: f32) -> Self
+    {
+        PeriscopeUniform { position, width }
+    }
 }
 
 fn main() -> ggez::GameResult
