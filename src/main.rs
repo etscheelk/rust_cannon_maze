@@ -93,6 +93,14 @@ impl<T> Message<T>
 }
 
 
+/// A trait type specific to my game, recreating some of the functions of
+/// ggez::event::EventHandler, but with extra context of the main state and the modifiable canvas
+trait GameObject
+{
+    fn update(&mut self, context: &mut ggez::Context, state: &MainState) -> ggez::GameResult;
+    fn draw(&self, context: &mut ggez::Context, state: &MainState, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult;
+}
+
 impl ggez::event::EventHandler for Player
 {
     fn update(&mut self, context: &mut ggez::Context) -> Result<(), ggez::GameError> {
@@ -164,6 +172,11 @@ impl ggez::event::EventHandler for MainState
             // println!("{:?}", self.player.pos);
         }
 
+        if context.time.ticks() % 100 == 0
+        {
+            println!("fps: {}", context.time.fps())
+        }
+
         Ok(())
     }
 
@@ -188,20 +201,24 @@ impl ggez::event::EventHandler for MainState
         let shader = graphics::ShaderBuilder::new().fragment_path("/shader_a.wgsl").build(context)?;
         canvas.set_shader(&shader);
         // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
-        let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
+        // let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
+        let mu = CustomColor { color: [1.0, 0.0, 0.0, 0.5].into() };
+        let mut mu = graphics::ShaderParamsBuilder::new(&mu).build(context);
+
+        // let mut mu = CustomColor { a: 0.5 };
         // let muu = mu.as_std140();
         // let params = graphics::ShaderParamsBuilder::new(&mu.as_std140());
         // let params = graphics::ShaderParamsBuilder::new(&mu);
-
+        
         // let bb: graphics::ShaderParams<CustomColor>;
-        let color: Vector4<f32> = [1.0, 0.0, 0.0, 0.5].into();
-        let mut mu = graphics::ShaderParamsBuilder::new(&color).build(context);
+        // let color: Vector4<f32> = [1.0, 0.0, 0.0, 0.5].into();
+        // let mut mu = graphics::ShaderParamsBuilder::new(&color).build(context);
         canvas.set_shader_params(&mu);
 
         canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(0.0, 0.0)).scale(Vec2::new(400.0, 400.0)));
         // let mu = MyUniform { rate: 0.5 };
 
-        mu.set_uniforms(context, &[0.0, 0.0, 1.0, 0.5].into());
+        mu.set_uniforms(context, &CustomColor { color: [0.0, 0.0, 1.0, 0.5].into() });
         canvas.set_shader_params(&mu);
         canvas.set_blend_mode(graphics::BlendMode::ALPHA);
         
@@ -212,8 +229,8 @@ impl ggez::event::EventHandler for MainState
         canvas.finish(context)?;
 
         // context.gfx.present(&self.screen.image(context))?;
-
-        ggez::timer::yield_now();
+        
+        // ggez::timer::yield_now();
         Ok(())
     }
 
@@ -237,9 +254,11 @@ impl ggez::event::EventHandler for MainState
 }
 
 #[repr(C)]
-#[derive(crevice::std140::AsStd140, Clone)]
-struct CustomColor {
+#[derive(Clone, crevice::std140::AsStd140)]
+struct CustomColor 
+{
     color: Vector4<f32>
+    // color: crevice::std140::Vec4
 }
 
 fn main() -> ggez::GameResult
@@ -290,7 +309,7 @@ fn main() -> ggez::GameResult
     use ggez::*;
     let cb = 
         ContextBuilder::new("chess_thing", "Ethan Scheelk")
-        .window_setup(conf::WindowSetup::default().title("Chess thing?"))
+        .window_setup(conf::WindowSetup::default().title("Chess thing?").vsync(false))
         .window_mode(conf::WindowMode::default().dimensions(400.0, 400.0))
         .add_resource_path(resource_dir);
 

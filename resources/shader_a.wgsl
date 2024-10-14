@@ -10,8 +10,8 @@ struct MyUniform
 }
 
 @group(3) @binding(0)
-// var<uniform> my_uniform: MyUniform;
-var<uniform> color: vec4f;
+var<uniform> my_uniform: MyUniform;
+// var<uniform> color: vec4f;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f
@@ -26,5 +26,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
     // return vec4f(in.position.xyz / 400.0, 0.5);
 
     // return my_uniform.color;
-    return color;
+    return my_uniform.color;
 }
