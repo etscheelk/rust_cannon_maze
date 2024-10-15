@@ -1,4 +1,5 @@
 use ggez::{glam::Vec2, mint::{Point2, Vector2, Vector4}};
+use std::collections::HashMap;
 
 struct MainState
 {
@@ -7,7 +8,42 @@ struct MainState
     input_state: InputState,
     assets: Assets,
     player: Player,
-    periscope: PeriscopeUniform
+    periscope: PeriscopeUniform,
+    missiles: HashMapTracker<Missile, 1024>
+}
+
+struct HashMapTracker<I, const MAX: u16 = 1024>(u16, HashMap<u16, I>);
+
+impl<I, const MAX: u16> HashMapTracker<I, MAX>
+{
+    fn push(&mut self, i: I) -> Option<u16>
+    {
+        if self.1.len() + 1 >= MAX as usize
+        {
+            None
+        }
+        else
+        {
+            self.1.insert(self.0, i);
+            let ret = Some(self.0);
+            self.0 = (self.0 + 1) % MAX;
+
+            ret
+        }
+    }
+
+    fn push_iter(&mut self, i: impl IntoIterator<Item = I>) -> Option<Vec<u16>>
+    {
+        let i = i.into_iter();
+
+        let v = i.map(
+        |i: I|
+        {
+            self.push(i)
+        }).collect();
+
+        return v;
+    }
 }
 
 impl MainState
@@ -30,7 +66,8 @@ impl MainState
             screen,
             assets,
             player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false),
-            periscope: PeriscopeUniform::new([0.0, 0.0].into(), 0.5)
+            periscope: PeriscopeUniform::new([0.0, 0.0].into(), 0.5),
+            missiles: HashMapTracker(0, HashMap::<u16, Missile>::new())
         };
 
         Ok(s)
@@ -41,6 +78,17 @@ impl MainState
 struct InputState
 {
     i: i32,
+}
+
+struct Missile
+{
+    position: Point2<f32>,
+    velocity: Vector2<f32>
+}
+
+impl Missile
+{
+    const WIDTH: f32 = 0.05;
 }
 
 #[derive(Default, Debug, Clone, derive_setters::Setters)]
@@ -161,12 +209,12 @@ impl GameObject<PeriscopeUniform> for MainState
 
     fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 
     {
-        
         let ps = &self.periscope;
         
         use ggez::graphics;
         // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
         let shader = graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
+        
         canvas.set_shader(&shader);
         let params = graphics::ShaderParamsBuilder::new(ps).build(context);
         canvas.set_shader_params(&params);
@@ -180,7 +228,8 @@ impl GameObject<PeriscopeUniform> for MainState
 
 struct Assets
 {
-    player_image: ggez::graphics::Image
+    player_image: ggez::graphics::Image,
+    missile_image: ggez::graphics::Image,
 }
 
 impl Assets
@@ -188,11 +237,17 @@ impl Assets
     fn new(context: &mut ggez::Context) -> ggez::GameResult<Assets>
     {
         let player_image = ggez::graphics::Image::from_path(context, "/dogRight0.png")?;
-        
+        let missile_image = ggez::graphics::Image::from_path(context, "/missile.png")?;
         // white square
         // let player_image = ggez::graphics::Image::from_color(context, 30, 30, None);
 
-        Ok(Assets { player_image })
+        Ok(
+            Assets 
+            { 
+                player_image,
+                missile_image
+            }
+        )
     }
 }
 
