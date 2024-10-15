@@ -13,16 +13,22 @@ struct PeriscopeUniform
 @group(3) @binding(0)
 var<uniform> ps: PeriscopeUniform;
 
+/*
+    Acts as a spotlight around given position
+    In reality, it darkest everything around it
+
+    Blend mode should be on multiply
+*/
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
 {
     let d = distance(ps.position, in.position.xy);
 
-    var col = vec3f(0.0);
+    var col = vec3f(1.0);
 
-    if d > 100.0
+    if d > 100.0 // HARDCODED, FIXME
     {
-        return vec4f(0.0, 0.0, 0.0, 0.5);
+        col = vec3f(0.005);
     }
 
     // let out = vec4<f32>(col, 1.0);

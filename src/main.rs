@@ -8,7 +8,10 @@ struct MainState
     input_state: InputState,
     assets: Assets,
     player: Player,
+    
     periscope: PeriscopeUniform,
+    periscope_shader: ggez::graphics::Shader,
+
     missiles: HashMapTracker<Missile>
 }
 
@@ -94,6 +97,7 @@ impl MainState
             assets,
             player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false),
             periscope: PeriscopeUniform::new([0.0, 0.0].into(), 0.5),
+            periscope_shader: ggez::graphics::ShaderBuilder::new().fragment_code(include_str!("../resources/periscope.wgsl")).build(context)?,
             missiles: HashMapTracker(0, HashMap::<u16, Missile>::new())
         };
 
@@ -253,16 +257,17 @@ impl GameObject<PeriscopeUniform> for MainState
         let ps = &self.periscope;
         
         use ggez::graphics;
-        // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
-        let shader = graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
+        // canvas.set_blend_mode(graphics::BlendMode::DARKEN);
+        canvas.set_blend_mode(graphics::BlendMode::MULTIPLY);
+        // let shader = graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
         
-        canvas.set_shader(&shader);
+        canvas.set_shader(&self.periscope_shader);
         let params = graphics::ShaderParamsBuilder::new(ps).build(context);
         canvas.set_shader_params(&params);
 
         let q = graphics::Quad;
 
-        canvas.draw(&q, graphics::DrawParam::new().scale(Vec2::new(400.0, 400.0)));
+        canvas.draw(&q, graphics::DrawParam::new().scale([400.0, 400.0]));
         Ok(())
     }
 }
@@ -289,7 +294,24 @@ impl GameObject<HashMapTracker<Missile>> for MainState
 
         // TODO
         // Check missile boundaries and despawn if necessary
-        let a: Point2<f32> = [1.0, 1.0].into();
+        missiles.1
+        .iter()
+        .fold(vec![], 
+        |mut acc, (&ind, m)|
+        {
+            if m.position.x < -100.0 || m.position.x > 500.0 || m.position.y < -100.0 || m.position.y > 500.0
+            {
+                acc.push(ind);
+            }
+            acc
+        })
+        .iter()
+        .for_each(
+        |&ind|
+        {
+            missiles.delete(ind);
+        });
+
         
 
         // todo!()
@@ -325,7 +347,7 @@ impl Assets
         let missile_image = ggez::graphics::Image::from_path(context, "/missile.png")?;
         // white square
         // let player_image = ggez::graphics::Image::from_color(context, 30, 30, None);
-
+        
         Ok(
             Assets 
             { 
@@ -357,11 +379,11 @@ impl ggez::event::EventHandler for MainState
 
         GameObject::<PeriscopeUniform>::update(self, context)?;
 
-        if context.time.ticks() % 100 == 0
-        {
-            println!("fps: {}", context.time.fps());
-            // println!("missiles: {:#?}", self.missiles);
-        }
+        // if context.time.ticks() % 100 == 0
+        // {
+        //     println!("fps: {}", context.time.fps());
+        //     println!("missiles: {:#?}", self.missiles.1.len());
+        // }
 
         Ok(())
     }
@@ -374,7 +396,7 @@ impl ggez::event::EventHandler for MainState
         use ggez::graphics::{self, Color};
         let mut canvas = 
             // graphics::Canvas::from_screen_image(context, &mut self.screen, Color::BLACK);
-            graphics::Canvas::from_frame(context, Color::BLACK);
+            graphics::Canvas::from_frame(context, Color::WHITE);
 
         // let draw_params = graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
         // canvas.draw(&self.assets.player_image, draw_params);
@@ -383,30 +405,32 @@ impl ggez::event::EventHandler for MainState
         // let a= 
         //     graphics::MeshBuilder::new().rectangle(graphics::DrawMode::Fill(FillOptions::DEFAULT), graphics::Rect::new(20.0, 20.0, 20.0, 20.0), Color::CYAN)?.build();
         // let a = graphics::Mesh::new_rectangle(context, graphics::DrawMode::Fill(graphics::FillOptions::DEFAULT), graphics::Rect::new(0.0, 0.0, 400.0, 400.0), Color::CYAN)?;
-        let a = graphics::Quad;
-        let shader = graphics::ShaderBuilder::new().fragment_path("/shader_a.wgsl").build(context)?;
-        canvas.set_shader(&shader);
-        // // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
-        // // let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
-        let uniform = CustomColor { color: [1.0, 0.0, 0.0, 0.5].into() };
-        let uniform = graphics::ShaderParamsBuilder::new(&uniform).build(context);
+        // let a = graphics::Quad;
+        // let shader = graphics::ShaderBuilder::new().fragment_path("/shader_a.wgsl").build(context)?;
+        // canvas.set_shader(&shader);
+        // // // let mut mu = MyUniform { color: crevice::std140::Vec4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 } };
+        // // // let mut mu = CustomColor { color: [1.0, 0.0, 0.0, 1.0].into() };
+        // let uniform = CustomColor { color: [1.0, 0.0, 0.0, 0.5].into() };
+        // let uniform = graphics::ShaderParamsBuilder::new(&uniform).build(context);
 
-        canvas.set_shader_params(&uniform);
-
-        canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(0.0, 0.0)).scale(Vec2::new(400.0, 400.0)));
-        // // let mu = MyUniform { rate: 0.5 };
-
-        // uniform.set_uniforms(context, &CustomColor { color: [0.0, 0.0, 1.0, 0.5].into() });
         // canvas.set_shader_params(&uniform);
-        // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
-        
-        // canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(20.0, 20.0)).scale(Vec2::new(360.0, 360.0)));
-        
-        // let params = graphics::ShaderParamsBuilder::new(&mu);
 
+        // canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(0.0, 0.0)).scale(Vec2::new(400.0, 400.0)));
+        // // // let mu = MyUniform { rate: 0.5 };
+
+        // // uniform.set_uniforms(context, &CustomColor { color: [0.0, 0.0, 1.0, 0.5].into() });
+        // // canvas.set_shader_params(&uniform);
+        // // canvas.set_blend_mode(graphics::BlendMode::ALPHA);
+        
+        // // canvas.draw(&a, graphics::DrawParam::new().dest(Vec2::new(20.0, 20.0)).scale(Vec2::new(360.0, 360.0)));
+        
+        // // let params = graphics::ShaderParamsBuilder::new(&mu);
+
+        GameObject::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
+
+        // post effects
         GameObject::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
         
-        GameObject::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
         canvas.finish(context)?;
 
