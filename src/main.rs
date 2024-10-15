@@ -9,40 +9,67 @@ struct MainState
     assets: Assets,
     player: Player,
     periscope: PeriscopeUniform,
-    missiles: HashMapTracker<Missile, 1024>
+    missiles: HashMapTracker<Missile>
 }
 
+#[derive(Debug, Clone)]
 struct HashMapTracker<I, const MAX: u16 = 1024>(u16, HashMap<u16, I>);
+
+enum Status
+{
+    Failure,
+    Success,
+}
 
 impl<I, const MAX: u16> HashMapTracker<I, MAX>
 {
-    fn push(&mut self, i: I) -> Option<u16>
+
+    fn push(&mut self, i: I) -> Status
     {
-        if self.1.len() + 1 >= MAX as usize
+        if self.1.len() + 1 > MAX as usize
         {
-            None
+            Status::Failure
         }
         else
         {
             self.1.insert(self.0, i);
-            let ret = Some(self.0);
             self.0 = (self.0 + 1) % MAX;
 
-            ret
+            Status::Success
         }
     }
 
-    fn push_iter(&mut self, i: impl IntoIterator<Item = I>) -> Option<Vec<u16>>
+    #[deprecated]
+    fn push_iter(&mut self, i: impl IntoIterator<Item = I>) -> u16
     {
         let i = i.into_iter();
 
-        let v = i.map(
-        |i: I|
+        let v = i.fold(0_u16,
+        |acc, i|
         {
-            self.push(i)
-        }).collect();
+            acc + if let Status::Failure = self.push(i)
+            {
+                1
+            } else { 0 }
+        });
+
+        // let v = i.map(
+        // |i: I|
+        // {
+        //     self.push(i)
+        // }).collect();
 
         return v;
+    }
+
+    // Should basically always return Success. 
+    fn delete(&mut self, index: u16) -> Status
+    {   
+        match self.1.remove(&index)
+        {
+            Some(_) => Status::Success,
+            None    => Status::Failure,
+        }
     }
 }
 
@@ -77,18 +104,32 @@ impl MainState
 #[derive(Default)]
 struct InputState
 {
-    i: i32,
+    mouse_click: Option<Point2<f32>>
 }
 
+#[derive(Debug, Clone)]
 struct Missile
 {
     position: Point2<f32>,
-    velocity: Vector2<f32>
+    velocity: Vector2<f32>,
+    size: (f32, f32),
+    index: u16,
 }
 
 impl Missile
 {
     const WIDTH: f32 = 0.05;
+
+    fn new(position: Point2<f32>, velocity: Vector2<f32>, index: u16) -> Self
+    {
+        Self
+        {
+            position,
+            velocity,
+            index,
+            size: (8.0, 8.0)
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, derive_setters::Setters)]
@@ -226,6 +267,50 @@ impl GameObject<PeriscopeUniform> for MainState
     }
 }
 
+impl GameObject<HashMapTracker<Missile>> for MainState
+{
+    fn update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
+        let missiles = &mut self.missiles;
+
+        // update each missile
+        for (&_index, missile) in &mut missiles.1
+        {
+            missile.position.x += missile.velocity.x / 60.0;
+            missile.position.y += missile.velocity.y / 60.0; // FIXME: Hardcoded
+        }
+
+        // add a missile if necessary
+        if let Some(point) = self.input_state.mouse_click
+        {
+            let m = Missile::new(point, [50.0, 0.0].into(), missiles.0);
+            missiles.push(m);
+        }
+        self.input_state.mouse_click = None;
+
+        // TODO
+        // Check missile boundaries and despawn if necessary
+        let a: Point2<f32> = [1.0, 1.0].into();
+        
+
+        // todo!()
+        Ok(())
+    }
+
+    fn draw(&self, _context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
+        let missiles = &self.missiles;
+        
+        use ggez::graphics;
+
+        for (_, missile) in &missiles.1
+        {
+            let param = graphics::DrawParam::new().dest(missile.position);
+            canvas.draw(&self.assets.missile_image, param);
+        }
+        
+        Ok(())
+    }
+}
+
 struct Assets
 {
     player_image: ggez::graphics::Image,
@@ -261,6 +346,7 @@ impl ggez::event::EventHandler for MainState
         {
 
             GameObject::<Player>::update(self, context)?;
+            GameObject::<HashMapTracker<Missile>>::update(self, context)?;
 
             // <self as GameObject>.self.update(context);
 
@@ -273,7 +359,8 @@ impl ggez::event::EventHandler for MainState
 
         if context.time.ticks() % 100 == 0
         {
-            println!("fps: {}", context.time.fps())
+            println!("fps: {}", context.time.fps());
+            // println!("missiles: {:#?}", self.missiles);
         }
 
         Ok(())
@@ -319,7 +406,7 @@ impl ggez::event::EventHandler for MainState
 
         GameObject::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
         
-
+        GameObject::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
         canvas.finish(context)?;
 
@@ -331,7 +418,7 @@ impl ggez::event::EventHandler for MainState
 
     fn key_down_event(
             &mut self,
-            ctx: &mut ggez::Context,
+            _ctx: &mut ggez::Context,
             input: ggez::input::keyboard::KeyInput,
             _repeated: bool,
         ) -> ggez::GameResult 
@@ -345,6 +432,23 @@ impl ggez::event::EventHandler for MainState
 
         Ok(())
         // todo!()
+    }
+
+    fn mouse_button_down_event(
+            &mut self,
+            _ctx: &mut ggez::Context,
+            button: ggez::event::MouseButton,
+            x: f32,
+            y: f32,
+        ) -> ggez::GameResult 
+    {
+        use ggez::event::MouseButton::*;
+        if button == Left
+        {
+            self.input_state.mouse_click = Some([x, y].into());
+        }
+        
+        Ok(())
     }
 }
 
