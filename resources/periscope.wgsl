@@ -26,9 +26,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32>
 
     var col = vec3f(1.0);
 
-    if d > 100.0 // HARDCODED, FIXME
+    if d > 50.0 // HARDCODED, FIXME
     {
-        col = vec3f(0.005);
+        if d < 100.0
+        {
+            col *= -((d - 50.0) / 50.0);
+            col += 1.0;
+            col = max(vec3f(0.05), col);
+        }
+        else
+        {
+            col = vec3f(0.05);
+        }
     }
 
     // let out = vec4<f32>(col, 1.0);

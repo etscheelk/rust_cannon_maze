@@ -1,9 +1,8 @@
-use ggez::{glam::Vec2, mint::{Point2, Vector2, Vector4}};
+use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use std::collections::HashMap;
 
 struct MainState
 {
-    called: u32,
     screen: ggez::graphics::ScreenImage,
     input_state: InputState,
     assets: Assets,
@@ -12,6 +11,7 @@ struct MainState
     periscope: PeriscopeUniform,
     periscope_shader: ggez::graphics::Shader,
 
+    cannon: Cannon,
     missiles: HashMapTracker<Missile>
 }
 
@@ -80,25 +80,31 @@ impl MainState
 {
     fn new(context: &mut ggez::Context) -> ggez::GameResult<MainState>
     {
+        let input_state = InputState { ..std::default::Default::default() };
         let screen = 
             ggez::graphics::ScreenImage::new(
                 context, 
                 ggez::graphics::ImageFormat::Rgba8UnormSrgb, 
                 1.0, 1.0, 1
             );
-        
         let assets = Assets::new(context)?;
+        let player = Player::default().feet_offset([0.0, 20.0].into()).grounded(false);
+        let periscope = PeriscopeUniform::new([0.0, 0.0], 0.5);
+        let periscope_shader = 
+            ggez::graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
+        let cannon = Cannon { facing: [1.0, 0.0].into(), position: [200.0, 200.0].into() };
+        let missiles = HashMapTracker(0, HashMap::<u16, Missile>::new());
 
         let s = MainState
         {
-            called: 0,
-            input_state: InputState { ..std::default::Default::default() },
+            input_state,
             screen,
             assets,
-            player: Player::default().feet_offset(Vec2::new(0.0, 20.0)).grounded(false),
-            periscope: PeriscopeUniform::new([0.0, 0.0].into(), 0.5),
-            periscope_shader: ggez::graphics::ShaderBuilder::new().fragment_code(include_str!("../resources/periscope.wgsl")).build(context)?,
-            missiles: HashMapTracker(0, HashMap::<u16, Missile>::new())
+            player,
+            periscope,
+            periscope_shader,
+            cannon,
+            missiles
         };
 
         Ok(s)
@@ -108,14 +114,14 @@ impl MainState
 #[derive(Default)]
 struct InputState
 {
-    mouse_click: Option<Point2<f32>>
+    mouse_click: Option<Vec2>
 }
 
 #[derive(Debug, Clone)]
 struct Missile
 {
-    position: Point2<f32>,
-    velocity: Vector2<f32>,
+    position: Vec2,
+    velocity: Vec2,
     size: (f32, f32),
     index: u16,
 }
@@ -124,7 +130,7 @@ impl Missile
 {
     const WIDTH: f32 = 0.05;
 
-    fn new(position: Point2<f32>, velocity: Vector2<f32>, index: u16) -> Self
+    fn new(position: Vec2, velocity: Vec2, index: u16) -> Self
     {
         Self
         {
@@ -133,6 +139,27 @@ impl Missile
             index,
             size: (8.0, 8.0)
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Cannon
+{
+    // Unit vector denoting direction
+    facing: Vec2,
+
+    position: Vec2,
+}
+
+impl Cannon
+{
+    const VELOCITY : f32 = 50.0;
+
+    fn fire(&self) -> ()
+    {
+        
+        let velocity = self.facing * Self::VELOCITY;
+        // let missle = Missile::new(self.position, velocity, index)
     }
 }
 
@@ -323,6 +350,8 @@ impl GameObject<HashMapTracker<Missile>> for MainState
         
         use ggez::graphics;
 
+        // TODO: Update to use instanced array
+        // for fast drawing
         for (_, missile) in &missiles.1
         {
             let param = graphics::DrawParam::new().dest(missile.position);
@@ -333,18 +362,40 @@ impl GameObject<HashMapTracker<Missile>> for MainState
     }
 }
 
+impl GameObject<Cannon> for MainState
+{
+    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
+        todo!()
+    }
+
+    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
+        use ggez::graphics;
+        
+        let ref cannon = self.cannon;
+        let ref cannon_image = self.assets.cannon_image;
+        let param = graphics::DrawParam::new().dest([200.0, 200.0]).rotation(cannon.facing.angle_between(Vec2::X));
+
+        canvas.draw(cannon_image, param);
+
+        Ok(())
+    }
+}
+
 struct Assets
 {
-    player_image: ggez::graphics::Image,
-    missile_image: ggez::graphics::Image,
+    player_image:   ggez::graphics::Image,
+    cannon_image:   ggez::graphics::Image,
+    missile_image:  ggez::graphics::Image,
 }
 
 impl Assets
 {
     fn new(context: &mut ggez::Context) -> ggez::GameResult<Assets>
     {
-        let player_image = ggez::graphics::Image::from_path(context, "/dogRight0.png")?;
-        let missile_image = ggez::graphics::Image::from_path(context, "/missile.png")?;
+        use ggez::graphics::Image;
+        let player_image    = Image::from_path(context, "/dogRight0.png")?;
+        let cannon_image    = Image::from_path(context, "/cannon.png")?;
+        let missile_image   = Image::from_path(context, "/missile.png")?;
         // white square
         // let player_image = ggez::graphics::Image::from_color(context, 30, 30, None);
         
@@ -352,6 +403,7 @@ impl Assets
             Assets 
             { 
                 player_image,
+                cannon_image,
                 missile_image
             }
         )
@@ -426,6 +478,8 @@ impl ggez::event::EventHandler for MainState
         
         // // let params = graphics::ShaderParamsBuilder::new(&mu);
 
+        GameObject::<Cannon>::draw(self, context, &mut canvas)?;
+
         GameObject::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
         // post effects
@@ -436,7 +490,7 @@ impl ggez::event::EventHandler for MainState
 
         // context.gfx.present(&self.screen.image(context))?;
         
-        // ggez::timer::yield_now();
+        ggez::timer::yield_now();
         Ok(())
     }
 
@@ -487,14 +541,15 @@ struct CustomColor
 #[derive(Clone, crevice::std140::AsStd140)]
 struct PeriscopeUniform
 {
-    position: Point2<f32>,
+    position: Vector2<f32>,
     width: f32
 }
 
 impl PeriscopeUniform
 {
-    fn new(position: Point2<f32>, width: f32) -> Self
+    fn new(position: impl Into<Vector2<f32>>, width: f32) -> Self
     {
+        let position = position.into();
         PeriscopeUniform { position, width }
     }
 }

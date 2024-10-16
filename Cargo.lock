@@ -556,6 +556,7 @@ checksum = "1ca0647ab3b3b1554ec55f24ba8821123474c60c78964a214f5f9195bf632df4"
 dependencies = [
  "bytemuck",
  "crevice-derive",
+ "glam 0.23.0",
  "mint",
 ]
 
@@ -834,7 +835,7 @@ dependencies = [
  "crevice",
  "directories",
  "gilrs",
- "glam",
+ "glam 0.24.2",
  "glyph_brush",
  "image",
  "log",
@@ -903,6 +904,15 @@ name = "gimli"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
+
+[[package]]
+name = "glam"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e4afd9ad95555081e109fe1d21f2a30c691b5f0919c67dfa690a2e1eb6bd51c"
+dependencies = [
+ "mint",
+]
 
 [[package]]
 name = "glam"

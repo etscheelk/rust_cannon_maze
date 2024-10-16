@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 array-macro = "2.1.8"
-crevice = { version = "0.13.0", features = [] }
+crevice = { version = "0.13.0", features = ["glam"] }
 derive_setters = "0.1.6"
 ggez = "0.9.3"
 bytemuck = { version = "1.12", features = ["derive"] }
