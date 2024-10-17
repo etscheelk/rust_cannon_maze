@@ -1,5 +1,3 @@
-use std::default;
-
 #[derive(Debug, Clone, Copy)]
 pub struct Message<T>(pub T, pub f32);
 
@@ -74,11 +72,11 @@ impl <I> Message2<I>
     
 }
 
-impl<I> crate::GameObject<Message2<I>> for Message2<I>
-{
-    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
-    {
+// impl<I> crate::GameObject<Message2<I>> for Message2<I>
+// {
+//     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
+//     {
         
-        Ok(())
-    }
-}
+//         Ok(())
+//     }
+// }

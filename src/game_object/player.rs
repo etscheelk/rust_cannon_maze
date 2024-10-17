@@ -1,7 +1,7 @@
 use ggez::glam::Vec2;
 
 // local imports
-use crate::message::Message;
+use crate::util::message::Message;
 
 #[derive(Default, Debug, Clone, derive_setters::Setters)]
 pub struct Player
@@ -25,9 +25,10 @@ impl Player
     }
 }
 
-impl crate::GameObject<Player> for crate::MainState
+impl crate::FixedUpdate<Player> for crate::MainState
 {
-    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
+    fn fixed_update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
+    {
         let player = &mut self.player;
 
         player.jump = match player.jump
@@ -58,7 +59,10 @@ impl crate::GameObject<Player> for crate::MainState
 
         Ok(())
     }
+}
 
+impl crate::Draw<Player> for crate::MainState
+{
     fn draw(&self, _context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
         let draw_params = ggez::graphics::DrawParam::new().dest(self.player.pos).offset(Vec2::new(0.5, 0.5));
         canvas.draw(&self.assets.player_image, draw_params);

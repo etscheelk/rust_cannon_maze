@@ -1,7 +1,7 @@
 use ggez::glam::Vec2;
 
 // local imports
-use crate::hash_map_tracker::HashMapTracker;
+use crate::util::hash_map_tracker::HashMapTracker;
 
 #[derive(Debug, Clone)]
 pub struct Missile
@@ -28,9 +28,9 @@ impl Missile
     }
 }
 
-impl crate::GameObject<HashMapTracker<Missile>> for crate::MainState
+impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
 {
-    fn update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
+    fn fixed_update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
         let missiles = &mut self.missiles;
 
         // update each missile
@@ -72,7 +72,10 @@ impl crate::GameObject<HashMapTracker<Missile>> for crate::MainState
         // todo!()
         Ok(())
     }
+}
 
+impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
+{
     fn draw(&self, _context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
         let missiles = &self.missiles;
         

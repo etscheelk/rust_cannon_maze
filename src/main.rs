@@ -1,16 +1,19 @@
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
-use std::collections::HashMap;
+use util::hash_map_tracker::HashMapTracker;
+// use std::collections::HashMap;
 
 // local imports
-mod missile;
-mod hash_map_tracker;
-mod message;
-mod player;
+mod game_object;
+mod util;
 
-use hash_map_tracker::HashMapTracker;
-use message::Message;
-use missile::Missile;
-use player::Player;
+use crate::game_object::{
+    cannon::{Cannon, RotateDir}, 
+    missile::Missile, 
+    player::Player, 
+    Draw, 
+    FixedUpdate, 
+    Update
+};
 
 struct MainState
 {
@@ -42,7 +45,7 @@ impl MainState
         let periscope = PeriscopeUniform::new([0.0, 0.0], 0.5);
         let periscope_shader = 
             ggez::graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
-        let cannon = Cannon { facing: [1.0, 0.0].into(), position: [200.0, 200.0].into() };
+        let cannon = Cannon::default();
         let missiles = HashMapTracker::new();
 
         let s = MainState
@@ -64,48 +67,11 @@ impl MainState
 #[derive(Default)]
 struct InputState
 {
-    mouse_click: Option<Vec2>
+    mouse_click: Option<Vec2>,
+    cannon_rotate: Option<RotateDir>
 }
 
-#[derive(Debug, Clone)]
-struct Cannon
-{
-    // Unit vector denoting direction
-    facing: Vec2,
-
-    position: Vec2,
-}
-
-impl Cannon
-{
-    const VELOCITY : f32 = 50.0;
-
-    fn fire(&self) -> ()
-    {
-        
-        let velocity = self.facing * Self::VELOCITY;
-        // let missle = Missile::new(self.position, velocity, index)
-    }
-}
-
-/// A trait type specific to my game, recreating some of the functions of
-/// ggez::event::EventHandler, but with extra context of the main state and the modifiable canvas
-trait GameObject<I>
-{
-    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult
-    {
-        let _ = context;
-        Ok(())
-    }
-    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult
-    {
-        let _ = (context, canvas);
-        Ok(())
-    }
-}
-
-
-impl GameObject<PeriscopeUniform> for MainState
+impl Update<PeriscopeUniform> for MainState
 {
     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
     {
@@ -115,7 +81,10 @@ impl GameObject<PeriscopeUniform> for MainState
 
         Ok(())    
     }
+}
 
+impl Draw<PeriscopeUniform> for MainState
+{
     fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 
     {
         let ps = &self.periscope;
@@ -132,25 +101,6 @@ impl GameObject<PeriscopeUniform> for MainState
         let q = graphics::Quad;
 
         canvas.draw(&q, graphics::DrawParam::new().scale([400.0, 400.0]));
-        Ok(())
-    }
-}
-
-impl GameObject<Cannon> for MainState
-{
-    fn update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
-        todo!()
-    }
-
-    fn draw(&self, _context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult {
-        use ggez::graphics;
-        
-        let ref cannon = self.cannon;
-        let ref cannon_image = self.assets.cannon_image;
-        let param = graphics::DrawParam::new().dest([200.0, 200.0]).rotation(cannon.facing.angle_between(Vec2::X));
-
-        canvas.draw(cannon_image, param);
-
         Ok(())
     }
 }
@@ -188,13 +138,13 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(60)
         {
-            GameObject::<Player>::update(self, context)?;
-            // TODO
-            // GameObject::<Cannon>::update(self, context)?;
-            GameObject::<HashMapTracker<Missile>>::update(self, context)?;
+            FixedUpdate::<Player>::fixed_update(self, context)?;
+            FixedUpdate::<Cannon>::fixed_update(self, context)?;
+            FixedUpdate::<Cannon>::fixed_update(self, context)?;
+            FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
         }
 
-        GameObject::<PeriscopeUniform>::update(self, context)?;
+        Update::<PeriscopeUniform>::update(self, context)?;
 
         Ok(())
     }
@@ -206,16 +156,13 @@ impl ggez::event::EventHandler for MainState
         let mut canvas = 
             graphics::Canvas::from_frame(context, Color::WHITE);
 
-        GameObject::<Player>::draw(self, context, &mut canvas)?;
-
-        GameObject::<Cannon>::draw(self, context, &mut canvas)?;
-
-        GameObject::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
+        Draw::<Player>::draw(self, context, &mut canvas)?;
+        Draw::<Cannon>::draw(self, context, &mut canvas)?;
+        Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
         // post effects
-        GameObject::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
+        Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
         
-
         canvas.finish(context)?;
         
         ggez::timer::yield_now();
@@ -233,6 +180,16 @@ impl ggez::event::EventHandler for MainState
         if input.keycode == Some(Space)
         {
             self.player.issue_jump();
+        }
+
+        if input.keycode == Some(Left)
+        {
+            self.input_state.cannon_rotate = Some(RotateDir::Left);
+        }
+
+        if input.keycode == Some(Right)
+        {
+            self.input_state.cannon_rotate = Some(RotateDir::Right);
         }
 
         Ok(())
