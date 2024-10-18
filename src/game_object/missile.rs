@@ -42,7 +42,7 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         // add a missile if necessary
         if let Some(point) = self.input_state.mouse_click
         {
-            let m = Missile::new(point, [50.0, 0.0].into(), missiles.0);
+            let m = Missile::new(point, 50.0 * self.cannon.facing, missiles.0);
             missiles.push(m);
         }
         self.input_state.mouse_click = None;
@@ -85,7 +85,11 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
         // for fast drawing
         for (_, missile) in &missiles.1
         {
-            let param = graphics::DrawParam::new().dest(missile.pos);
+            let param = 
+                graphics::DrawParam::new()
+                .dest(missile.pos)
+                .rotation(missile.vel.angle_between(Vec2::X))
+                .scale([5.0, 5.0]);
             canvas.draw(&self.assets.missile_image, param);
         }
         

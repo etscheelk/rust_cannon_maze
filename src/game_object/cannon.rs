@@ -15,9 +15,9 @@ pub enum RotateDir
 pub struct Cannon
 {
     // Unit vector denoting direction
-    facing: Vec2,
+    pub facing: Vec2,
 
-    position: Vec2,
+    pub position: Vec2,
 }
 
 impl Default for Cannon
@@ -74,7 +74,10 @@ impl crate::Draw<Cannon> for crate::MainState
         
         let ref cannon = self.cannon;
         let ref cannon_image = self.assets.cannon_image;
-        let param = graphics::DrawParam::new().dest([200.0, 200.0]).rotation(cannon.facing.angle_between(Vec2::X));
+        let param = 
+            graphics::DrawParam::new()
+            .dest([200.0, 200.0])
+            .rotation(cannon.facing.angle_between(Vec2::X));
 
         canvas.draw(cannon_image, param);
 
