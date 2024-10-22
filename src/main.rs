@@ -156,6 +156,9 @@ impl ggez::event::EventHandler for MainState
         let mut canvas = 
             graphics::Canvas::from_frame(context, Color::WHITE);
 
+        // pixel scaling, nearest-neighbor
+        canvas.set_sampler(graphics::Sampler::nearest_clamp());
+
         Draw::<Player>::draw(self, context, &mut canvas)?;
         Draw::<Cannon>::draw(self, context, &mut canvas)?;
         Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;

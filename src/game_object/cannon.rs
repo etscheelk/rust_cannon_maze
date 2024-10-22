@@ -77,7 +77,8 @@ impl crate::Draw<Cannon> for crate::MainState
         let param = 
             graphics::DrawParam::new()
             .dest([200.0, 200.0])
-            .rotation(cannon.facing.angle_between(Vec2::X));
+            .rotation(cannon.facing.angle_between(Vec2::X))
+            .scale([2.0, 2.0]);
 
         canvas.draw(cannon_image, param);
 

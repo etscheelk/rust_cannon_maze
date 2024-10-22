@@ -1,9 +1,29 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 // local imports
 
 #[derive(Debug, Clone)]
-pub struct HashMapTracker<I, const MAX: u16 = 1024>(pub u16, pub HashMap<u16, I>);
+pub struct HashMapTracker<I, const MAX: u16 = 1024>
+{
+    cur_index: u16,
+    tracker: HashMap<u16, I>
+}
+
+impl<I, const MAX: u16> Deref for HashMapTracker<I, MAX>
+{
+    type Target = HashMap<u16, I>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.tracker
+    }
+}
+
+impl<I, const MAX: u16> DerefMut for HashMapTracker<I, MAX>
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.tracker
+    }
+}
 
 pub enum Status
 {
@@ -11,55 +31,58 @@ pub enum Status
     Success,
 }
 
+pub trait ForTracker: WithIndex {}
+
+pub trait WithIndex
+{
+    fn with_index(self, index: u16) -> Self;
+}
+
 impl<I, const MAX: u16> HashMapTracker<I, MAX>
+where
+    I: ForTracker
 {
     pub fn new() -> Self
     {
-        Self(0, HashMap::new())
+        Self
+        {
+            cur_index: 0,
+            tracker: HashMap::new(),
+        }
     }
 
+    /// Add an item `I` into the tracker, consuming it.
+    /// The tracker is the ultimate owner of the item being tracked.
     pub fn push(&mut self, i: I) -> Status
     {
-        if self.1.len() + 1 > MAX as usize
+        if self.tracker.len() + 1 > MAX as usize
         {
             Status::Failure
         }
         else
         {
-            self.1.insert(self.0, i);
-            self.0 = (self.0 + 1) % MAX;
+            let ind = self.cur_index;
+            self.tracker.insert(ind, i.with_index(ind));
+            self.cur_index = (ind + 1) % MAX;
 
             Status::Success
         }
     }
 
-    // #[deprecated]
-    // pub fn push_iter(&mut self, i: impl IntoIterator<Item = I>) -> u16
-    // {
-    //     let i = i.into_iter();
+    pub fn get_tracker(&self) -> &<Self as Deref>::Target
+    {
+        & *self
+    }
 
-    //     let v = i.fold(0_u16,
-    //     |acc, i|
-    //     {
-    //         acc + if let Status::Failure = self.push(i)
-    //         {
-    //             1
-    //         } else { 0 }
-    //     });
-
-    //     // let v = i.map(
-    //     // |i: I|
-    //     // {
-    //     //     self.push(i)
-    //     // }).collect();
-
-    //     return v;
-    // }
+    pub fn get_tracker_mut(&mut self) -> &mut<Self as Deref>::Target
+    {
+        &mut *self
+    }
 
     // Should basically always return Success. 
     pub fn delete(&mut self, index: u16) -> Status
     {   
-        match self.1.remove(&index)
+        match self.tracker.remove(&index)
         {
             Some(_) => Status::Success,
             None    => Status::Failure,
