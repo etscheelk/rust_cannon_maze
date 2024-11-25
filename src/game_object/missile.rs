@@ -54,7 +54,10 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         {
             // let mut vel = 50.0 * self.cannon.facing;
             // vel.y *= -1.0;
-            let m = Missile::new(point, 50.0 * self.cannon.facing);
+            let mut missile_vel = 50.0 * self.cannon.facing;
+            missile_vel.y *= -1.0;
+            // let m = Missile::new(point, 50.0 * self.cannon.facing);
+            let m = Missile::new(point, missile_vel);
             missiles.push(m);
         }
         self.input_state.mouse_click = None;
@@ -102,7 +105,7 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
             let param = 
                 graphics::DrawParam::new()
                 .dest(missile.pos)
-                .rotation(missile.vel.angle_between(Vec2::X))
+                .rotation(-missile.vel.angle_between(Vec2::X))
                 .scale([5.0, 5.0]);
             canvas.draw(&self.assets.missile_image, param);
         }
