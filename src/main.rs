@@ -198,6 +198,22 @@ impl ggez::event::EventHandler for MainState
         Ok(())
     }
 
+    fn key_up_event(
+        &mut self, 
+        _ctx: &mut ggez::Context, 
+        input: ggez::input::keyboard::KeyInput
+    ) -> ggez::GameResult 
+    {
+        use ggez::input::keyboard::KeyCode::*;
+
+        if input.keycode == Some(Left) || input.keycode == Some(Right)
+        {
+            self.input_state.cannon_rotate = None;
+        }
+
+        Ok(())    
+    }
+
     fn mouse_button_down_event(
             &mut self,
             _ctx: &mut ggez::Context,
