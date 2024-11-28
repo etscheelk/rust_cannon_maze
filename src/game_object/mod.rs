@@ -14,6 +14,10 @@ pub(crate) trait Update<I>
 /// every fixed interval, such as 60 times a second for 60fps.
 /// 
 /// Use for things like physics especially.
+/// 
+/// Implement like 
+/// `impl crate::FixedUpdate<Cannon> for crate::MainState`, where 
+/// MainState has member variable(s) of type Cannon
 pub(crate) trait FixedUpdate<I>
 {
     fn fixed_update(&mut self, context: &mut ggez::Context) -> ggez::GameResult;

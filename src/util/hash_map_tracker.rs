@@ -2,6 +2,13 @@ use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 // local imports
 
+/// Acts as a tracker for a variety of objects with ID: u16, with a maximum number of elements.
+/// 
+/// The tracker is the owner of any object placed in itself.
+/// The tracker has a circular ID ensuring any object it owns has a unique ID. 
+/// 
+/// User can push items that the tracker places in itself as an owner, 
+/// giving them a circular unique ID of the element.
 #[derive(Debug, Clone)]
 pub struct HashMapTracker<I, const MAX: u16 = 1024>
 {
@@ -31,8 +38,10 @@ pub enum Status
     Success,
 }
 
+/// Any object you want to place in a HashMapTracker must implement this trait
 pub trait ForTracker: WithIndex {}
 
+/// A trait imposing a requirement that an object has a consuming function which sets a particular ID on the object
 pub trait WithIndex
 {
     fn with_index(self, index: u16) -> Self;
@@ -53,6 +62,9 @@ where
 
     /// Add an item `I` into the tracker, consuming it.
     /// The tracker is the ultimate owner of the item being tracked.
+    /// 
+    /// TODO: Could a circular ID wrap around to be a value of an object already in the map?
+    /// YES. FIXME
     pub fn push(&mut self, i: I) -> Status
     {
         if self.tracker.len() + 1 > MAX as usize
