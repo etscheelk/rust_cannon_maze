@@ -9,8 +9,12 @@ impl RotateBy for Vec2
 {
     fn rotate_by(self, theta: f32) -> Self 
     {
-        let rhs: Self = [theta.cos(), theta.sin()].into();
-        rhs.rotate(self)
+        let cos_theta = theta.cos();
+        let sin_theta = theta.sin();
+        Vec2::new(
+            self.x * cos_theta - self.y * sin_theta,
+            self.x * sin_theta + self.y * cos_theta
+        )
     }
 }
 
