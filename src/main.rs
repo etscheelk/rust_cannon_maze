@@ -31,6 +31,9 @@ struct MainState
 
 impl MainState
 {
+    const FIXED_PHYSICS_FRAMERATE: u32 = 60;
+    const FIXED_PHYSICS_TIMESTEP: f32 = 1.0 / MainState::FIXED_PHYSICS_FRAMERATE as f32;
+
     fn new(context: &mut ggez::Context) -> ggez::GameResult<MainState>
     {
         let input_state = InputState { ..std::default::Default::default() };
@@ -136,7 +139,7 @@ impl ggez::event::EventHandler for MainState
 {
     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
         // fixed-update
-        while context.time.check_update_time(60)
+        while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
             FixedUpdate::<Player>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
