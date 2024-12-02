@@ -1,3 +1,4 @@
+use core::f32;
 use std::f32::consts::PI;
 
 use ggez::glam::Vec2;
@@ -53,6 +54,7 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
     fn fixed_update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
         let ref mut cannon = self.cannon;
 
+        let mut new_rot_vel: f32 = 0.0;
         match self.input_state.cannon_rotate
         {
             // Either left or right is being held
@@ -60,34 +62,46 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
             {
                 use RotateDir::*;
 
-                let mut new_rot_vel: f32;
-                new_rot_vel = cannon.rot_vel + Cannon::ROT_ACC * MainState::FIXED_PHYSICS_TIMESTEP * if d == Left { 1.0 } else { -1.0 };
-                new_rot_vel = new_rot_vel.clamp(-Cannon::MAX_ROT_PER_SEC, Cannon::MAX_ROT_PER_SEC);
+                // if the desired acceleration is in the opposite direction
+                // of movement, pick the maximum of ROT_ACC and ROT_DE_ACC to
+                // helpfully do the fastest turn
+                let sign = if d == Left { 1.0 } else { -1.0 };
+                let mut acc = Cannon::ROT_ACC;
+                if cannon.rot_vel.signum() != sign
+                {
+                    acc = f32::max(Cannon::ROT_ACC, Cannon::ROT_DE_ACC);
+                }
+                acc *= sign;
 
-                cannon.rot_vel = new_rot_vel;
-                cannon.facing = cannon.facing.rotate_by(cannon.rot_vel * MainState::FIXED_PHYSICS_TIMESTEP);
+                new_rot_vel = cannon.rot_vel + acc * MainState::FIXED_PHYSICS_TIMESTEP;
+                new_rot_vel = new_rot_vel.clamp(-Cannon::MAX_ROT_PER_SEC, Cannon::MAX_ROT_PER_SEC);
             },
             // button not held at this time. 
             // Apply damping force in the opposite direction
             None =>
             {
-                let mut new_rot_vel: f32;
-                if cannon.rot_vel > 0.0
+                if cannon.rot_vel.abs() > 0.0
                 {
-                    new_rot_vel = cannon.rot_vel - Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
-                    new_rot_vel = new_rot_vel.max(0.0);
-
+                    let sign = cannon.rot_vel.signum();
+                    new_rot_vel = cannon.rot_vel - sign * Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
+                    if new_rot_vel.signum() != sign { new_rot_vel = 0.0; }
                 }
-                else
-                {
-                    new_rot_vel = cannon.rot_vel + Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
-                    new_rot_vel = new_rot_vel.min(0.0);
-                }
+                // if cannon.rot_vel > 0.0
+                // {
+                //     new_rot_vel = cannon.rot_vel - Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
+                //     new_rot_vel = new_rot_vel.max(0.0);
 
-                cannon.rot_vel = new_rot_vel;
-                cannon.facing = cannon.facing.rotate_by(cannon.rot_vel * MainState::FIXED_PHYSICS_TIMESTEP);
+                // }
+                // else
+                // {
+                //     new_rot_vel = cannon.rot_vel + Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
+                //     new_rot_vel = new_rot_vel.min(0.0);
+                // }
             },
         };
+
+        cannon.rot_vel = new_rot_vel;
+        cannon.facing = cannon.facing.rotate_by(cannon.rot_vel * MainState::FIXED_PHYSICS_TIMESTEP);
 
         Ok(())
     }
