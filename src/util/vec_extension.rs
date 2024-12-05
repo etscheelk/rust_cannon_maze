@@ -18,6 +18,26 @@ impl RotateBy for Vec2
     }
 }
 
+pub(crate) trait Flip
+{
+    fn flip_x(self) -> Self;
+    fn flip_y(self) -> Self;
+}
+
+impl Flip for Vec2
+{
+    fn flip_x(mut self) -> Self 
+    {
+        self.x = -self.x;
+        self    
+    }
+
+    fn flip_y(mut self) -> Self {
+        self.y = -self.y;
+        self
+    }
+}
+
 #[cfg(test)]
 mod test
 {
