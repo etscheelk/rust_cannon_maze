@@ -1,7 +1,7 @@
 use ggez::glam::Vec2;
 
 // local imports
-use crate::util::hash_map_tracker::{HashMapTracker, ForTracker, WithIndex};
+use crate::util::{hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, vec_extension::Flip};
 
 #[derive(Debug, Clone)]
 pub struct Missile
@@ -50,14 +50,24 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         
 
         // add a missile if necessary
-        if let Some(point) = self.input_state.mouse_click
+        if let Some(_mouse_click_point) = self.input_state.mouse_click
         {
             // let mut vel = 50.0 * self.cannon.facing;
             // vel.y *= -1.0;
             let mut missile_vel = 50.0 * self.cannon.facing;
-            missile_vel.y *= -1.0;
+            missile_vel.y *= -1.0; // account for flipped coords
+
+
+            // the spawn point of the missile should be the cannon's tip
+            // for now, we'll add the width of the cannon asset and account for its rotation
+            // FIXME, this is terrible, do not base your spawning off of your assets
+            // make the spawning fixed and modify assets
+            // FIXME, image size does not account for having scaled it
+            let pos: Vec2 = self.cannon.position + self.assets.cannon_image.width() as f32 * self.cannon.facing.flip_y();
+            let m = Missile::new(pos, missile_vel);
+
             // let m = Missile::new(point, 50.0 * self.cannon.facing);
-            let m = Missile::new(point, missile_vel);
+            // let m = Missile::new(point, missile_vel);
             missiles.push(m);
         }
         self.input_state.mouse_click = None;
@@ -104,11 +114,18 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
         // for fast drawing
         for (_, missile) in missiles.get_tracker()
         {
+            let transform = 
+            graphics::Transform::Values 
+            { 
+                dest: missile.pos.into(), 
+                rotation: -missile.vel.angle_between(Vec2::X), 
+                scale: [3.0, 3.0].into(), 
+                offset: [0.0, self.assets.missile_image.height() as f32 / 2.0].into()
+            };
+
             let param = 
                 graphics::DrawParam::new()
-                .dest(missile.pos)
-                .rotation(-missile.vel.angle_between(Vec2::X))
-                .scale([5.0, 5.0]);
+                .transform(transform.to_bare_matrix());
             canvas.draw(&self.assets.missile_image, param);
         }
         

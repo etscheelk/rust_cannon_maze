@@ -20,7 +20,7 @@ pub struct Cannon
     // Unit vector denoting direction
     pub facing: Vec2,
 
-    position: Vec2,
+    pub position: Vec2,
     rot_vel: f32,
 }
 
@@ -36,6 +36,9 @@ impl Default for Cannon
 impl Cannon
 {
     const VELOCITY : f32 = 50.0;
+    
+    /// constants relateed to rotation of cannon.
+    /// Numbers seem to act twice as high as expected
     const MAX_ROT_PER_SEC: f32 = PI / 2.0;
     const ROT_ACC: f32 = 0.5;
     const ROT_DE_ACC: f32 = Cannon::MAX_ROT_PER_SEC; // takes a second to brake to 0.
