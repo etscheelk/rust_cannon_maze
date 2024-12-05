@@ -26,8 +26,10 @@ pub struct Cannon
 
 impl Default for Cannon
 {
+    /// Spawn the cannon in the center of the screen
     fn default() -> Self {
-        Self { facing: Vec2::X, position: Default::default(), rot_vel: 0.0 }
+        let center_pos = [MainState::WINDOW_X / 2.0, MainState::WINDOW_Y / 2.0].into();
+        Self { facing: Vec2::X, position: center_pos, rot_vel: 0.0 }
     }
 }
 
@@ -116,7 +118,7 @@ impl crate::Draw<Cannon> for crate::MainState
         let ref cannon_image = self.assets.cannon_image;
         let param = 
             graphics::DrawParam::new()
-            .dest([200.0, 200.0])
+            .dest(cannon.position)
             .rotation(cannon.facing.angle_between(Vec2::X))
             .scale([2.0, 2.0]);
 

@@ -68,14 +68,16 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         .map(
         |(&ind, m)|
         {
-            if m.pos.x < -100.0 || m.pos.x > 500.0 || m.pos.y < -100.0 || m.pos.y > 500.0
+            let x_range = -100.0..(Self::WINDOW_X+100.0);
+            let y_range = -100.0..(Self::WINDOW_Y+100.0);
+
+            if x_range.contains(&m.pos.x) && y_range.contains(&m.pos.y)
             {
-                // acc.push(ind);
-                Some(ind)
+                None
             }
             else
             {
-                None
+                Some(ind)
             }
         })
         .flatten()
