@@ -29,3 +29,10 @@ pub(crate) trait Draw<I>
 {
     fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult;
 }
+
+/// A draw implementation that may impact the game state
+/// Probably don't use this
+pub(crate) trait DrawMut<I>
+{
+    fn draw_mut(&mut self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult;
+}
