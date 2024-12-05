@@ -20,20 +20,25 @@ pub struct Cannon
     // Unit vector denoting direction
     pub facing: Vec2,
 
-    position: Vec2,
+    pub position: Vec2,
     rot_vel: f32,
 }
 
 impl Default for Cannon
 {
+    /// Spawn the cannon in the center of the screen
     fn default() -> Self {
-        Self { facing: Vec2::X, position: Default::default(), rot_vel: 0.0 }
+        let center_pos = [MainState::WINDOW_X / 2.0, MainState::WINDOW_Y / 2.0].into();
+        Self { facing: Vec2::X, position: center_pos, rot_vel: 0.0 }
     }
 }
 
 impl Cannon
 {
     const VELOCITY : f32 = 50.0;
+    
+    /// constants relateed to rotation of cannon.
+    /// Numbers seem to act twice as high as expected
     const MAX_ROT_PER_SEC: f32 = PI / 2.0;
     const ROT_ACC: f32 = 0.5;
     const ROT_DE_ACC: f32 = Cannon::MAX_ROT_PER_SEC; // takes a second to brake to 0.
@@ -114,13 +119,41 @@ impl crate::Draw<Cannon> for crate::MainState
         
         let ref cannon = self.cannon;
         let ref cannon_image = self.assets.cannon_image;
+
+        let offset_pos: Vec2 = [0.0, cannon_image.height() as f32 / 2.0].into();
+
+        let transform = 
+        graphics::Transform::Values 
+        { 
+            dest: cannon.position.into(), 
+            rotation: cannon.facing.angle_between(Vec2::X), 
+            scale: [2.0, 2.0].into(), 
+            offset: [0.0, cannon_image.height() as f32 / 2.0].into(),
+        };
+
         let param = 
             graphics::DrawParam::new()
-            .dest([200.0, 200.0])
-            .rotation(cannon.facing.angle_between(Vec2::X))
-            .scale([2.0, 2.0]);
+            .transform(transform.to_bare_matrix());
+            // .transform(transform);
+            // .dest(cannon.position)
+            // // .offset([20.0, 20.0])
+            // .rotation(cannon.facing.angle_between(Vec2::X))
+            // .scale([2.0, 2.0]);
 
         canvas.draw(cannon_image, param);
+
+        
+
+
+        let center_dot = graphics::Quad;
+        let center_param = 
+            graphics::DrawParam::new()
+            .dest(cannon.position)
+            .color(graphics::Color::MAGENTA)
+            .scale([2.0, 2.0]);
+
+        canvas.draw(&center_dot, center_param);
+
 
         Ok(())
     }

@@ -31,6 +31,8 @@ struct MainState
 
 impl MainState
 {
+    const WINDOW_X: f32 = 800.0;
+    const WINDOW_Y: f32 = 800.0;
     const FIXED_PHYSICS_FRAMERATE: u32 = 60;
     const FIXED_PHYSICS_TIMESTEP: f32 = 1.0 / MainState::FIXED_PHYSICS_FRAMERATE as f32;
 
@@ -103,7 +105,7 @@ impl Draw<PeriscopeUniform> for MainState
 
         let q = graphics::Quad;
 
-        canvas.draw(&q, graphics::DrawParam::new().scale([400.0, 400.0]));
+        canvas.draw(&q, graphics::DrawParam::new().scale([Self::WINDOW_X, Self::WINDOW_Y]));
         Ok(())
     }
 }
@@ -141,7 +143,7 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
-            FixedUpdate::<Player>::fixed_update(self, context)?;
+            // FixedUpdate::<Player>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
@@ -162,7 +164,7 @@ impl ggez::event::EventHandler for MainState
         // pixel scaling, nearest-neighbor
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
 
-        Draw::<Player>::draw(self, context, &mut canvas)?;
+        // Draw::<Player>::draw(self, context, &mut canvas)?;
         Draw::<Cannon>::draw(self, context, &mut canvas)?;
         Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
@@ -269,7 +271,7 @@ fn main() -> ggez::GameResult
     let cb = 
         ContextBuilder::new("chess_thing", "Ethan Scheelk")
         .window_setup(conf::WindowSetup::default().title("Chess thing?").vsync(false))
-        .window_mode(conf::WindowMode::default().dimensions(400.0, 400.0))
+        .window_mode(conf::WindowMode::default().dimensions(MainState::WINDOW_X, MainState::WINDOW_Y))
         .add_resource_path(resource_dir);
 
     let (mut context, event_loop) = cb.build()?;
