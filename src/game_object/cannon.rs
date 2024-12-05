@@ -116,13 +116,41 @@ impl crate::Draw<Cannon> for crate::MainState
         
         let ref cannon = self.cannon;
         let ref cannon_image = self.assets.cannon_image;
+
+        let offset_pos: Vec2 = [0.0, cannon_image.height() as f32 / 2.0].into();
+
+        let transform = 
+        graphics::Transform::Values 
+        { 
+            dest: cannon.position.into(), 
+            rotation: cannon.facing.angle_between(Vec2::X), 
+            scale: [2.0, 2.0].into(), 
+            offset: [0.0, cannon_image.height() as f32 / 2.0].into(),
+        };
+
         let param = 
             graphics::DrawParam::new()
-            .dest(cannon.position)
-            .rotation(cannon.facing.angle_between(Vec2::X))
-            .scale([2.0, 2.0]);
+            .transform(transform.to_bare_matrix());
+            // .transform(transform);
+            // .dest(cannon.position)
+            // // .offset([20.0, 20.0])
+            // .rotation(cannon.facing.angle_between(Vec2::X))
+            // .scale([2.0, 2.0]);
 
         canvas.draw(cannon_image, param);
+
+        
+
+
+        let center_dot = graphics::Quad;
+        let center_param = 
+            graphics::DrawParam::new()
+            .dest(cannon.position)
+            .color(graphics::Color::MAGENTA)
+            .scale([2.0, 2.0]);
+
+        canvas.draw(&center_dot, center_param);
+
 
         Ok(())
     }
