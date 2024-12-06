@@ -1,7 +1,7 @@
 use ggez::glam::Vec2;
 
 // local imports
-use crate::util::{hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, vec_extension::Flip};
+use crate::{util::{hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, vec_extension::Flip}, MainState};
 
 #[derive(Debug, Clone)]
 pub struct Missile
@@ -45,7 +45,7 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         
         for (_, missile) in missiles.get_tracker_mut()
         {
-            missile.pos += missile.vel / 60.0;
+            missile.pos += missile.vel * MainState::FIXED_PHYSICS_TIMESTEP;
         }
         
 
@@ -54,7 +54,7 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         {
             // let mut vel = 50.0 * self.cannon.facing;
             // vel.y *= -1.0;
-            let mut missile_vel = 50.0 * self.cannon.facing;
+            let mut missile_vel = 120.0 * self.cannon.facing;
             missile_vel.y *= -1.0; // account for flipped coords
 
 

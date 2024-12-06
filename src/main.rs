@@ -1,3 +1,4 @@
+use game_object::enemy_wall::EnemyWall;
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
@@ -26,7 +27,8 @@ struct MainState
     periscope_shader: ggez::graphics::Shader,
 
     cannon: Cannon,
-    missiles: HashMapTracker<Missile>
+    missiles: HashMapTracker<Missile>,
+    enemy_walls: HashMapTracker<EnemyWall>
 }
 
 impl MainState
@@ -52,6 +54,14 @@ impl MainState
             ggez::graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
         let cannon = Cannon::default();
         let missiles = HashMapTracker::new();
+        let mut enemy_walls = HashMapTracker::new();
+
+        let example_wall = 
+            EnemyWall::default()
+            .rect(ggez::graphics::Rect::new(0.0, 0.0, 50.0, 10.0))
+            .transform(ggez::graphics::Transform::Values { dest: [600.0, 300.0].into(), rotation: -0.6, scale: [50.0, 10.0].into(), offset: [0.0, 0.0].into() });
+
+        enemy_walls.push(example_wall);
 
         let s = MainState
         {
@@ -62,7 +72,8 @@ impl MainState
             periscope,
             periscope_shader,
             cannon,
-            missiles
+            missiles,
+            enemy_walls,
         };
 
         Ok(s)
@@ -167,6 +178,8 @@ impl ggez::event::EventHandler for MainState
         // Draw::<Player>::draw(self, context, &mut canvas)?;
         Draw::<Cannon>::draw(self, context, &mut canvas)?;
         Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
+
+        Draw::<HashMapTracker<EnemyWall>>::draw(self, context, &mut canvas)?;
 
         // post effects
         Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
