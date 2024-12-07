@@ -2,6 +2,7 @@ pub mod cannon;
 pub mod missile;
 pub mod player;
 pub mod enemy_wall;
+pub mod grid;
 
 /// test test
 

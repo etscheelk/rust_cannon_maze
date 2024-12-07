@@ -1,4 +1,4 @@
-use game_object::enemy_wall::EnemyWall;
+use game_object::{enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
@@ -26,9 +26,14 @@ struct MainState
     periscope: PeriscopeUniform,
     periscope_shader: ggez::graphics::Shader,
 
+    /// The position of the camera, per se. 
+    world_pos: Vec2,
+
     cannon: Cannon,
     missiles: HashMapTracker<Missile>,
-    enemy_walls: HashMapTracker<EnemyWall>
+    enemy_walls: HashMapTracker<EnemyWall>,
+    chunks: Vec<Chunk>,
+
 }
 
 impl MainState
@@ -63,6 +68,11 @@ impl MainState
 
         enemy_walls.push(example_wall);
 
+        let chunk: Chunk = Chunk::default();
+        let chunks = vec![chunk];
+
+        let world_pos = [0.0, 0.0].into();
+
         let s = MainState
         {
             input_state,
@@ -74,6 +84,8 @@ impl MainState
             cannon,
             missiles,
             enemy_walls,
+            chunks,
+            world_pos,
         };
 
         Ok(s)
@@ -126,6 +138,7 @@ struct Assets
     player_image:   ggez::graphics::Image,
     cannon_image:   ggez::graphics::Image,
     missile_image:  ggez::graphics::Image,
+    basic_object: ggez::graphics::Image,
 }
 
 impl Assets
@@ -136,13 +149,15 @@ impl Assets
         let player_image    = Image::from_path(context, "/dogRight0.png")?;
         let cannon_image    = Image::from_path(context, "/cannon.png")?;
         let missile_image   = Image::from_path(context, "/missile.png")?;
+        let basic_object = Image::from_path(context, "/Object.png")?;
         
         Ok(
             Assets 
             { 
                 player_image,
                 cannon_image,
-                missile_image
+                missile_image,
+                basic_object
             }
         )
     }
@@ -157,6 +172,7 @@ impl ggez::event::EventHandler for MainState
             // FixedUpdate::<Player>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
+            FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
         }
 
@@ -181,8 +197,10 @@ impl ggez::event::EventHandler for MainState
 
         Draw::<HashMapTracker<EnemyWall>>::draw(self, context, &mut canvas)?;
 
+        Draw::<Vec<Chunk>>::draw(self, context, &mut canvas)?;
+
         // post effects
-        Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
+        // Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
         
         canvas.finish(context)?;
         
