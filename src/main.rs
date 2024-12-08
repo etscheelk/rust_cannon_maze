@@ -1,4 +1,4 @@
-use game_object::{enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}};
+use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
@@ -34,6 +34,7 @@ struct MainState
     enemy_walls: HashMapTracker<EnemyWall>,
     chunks: Vec<Chunk>,
 
+    enemies: Vec<Enemy>,
 }
 
 impl MainState
@@ -73,6 +74,8 @@ impl MainState
 
         let world_pos = [0.0, 0.0].into();
 
+        let enemies = vec![Enemy::default().position([12.0, 5.0].into())];
+
         let s = MainState
         {
             input_state,
@@ -86,6 +89,7 @@ impl MainState
             enemy_walls,
             chunks,
             world_pos,
+            enemies
         };
 
         Ok(s)
@@ -198,6 +202,8 @@ impl ggez::event::EventHandler for MainState
         Draw::<HashMapTracker<EnemyWall>>::draw(self, context, &mut canvas)?;
 
         Draw::<Vec<Chunk>>::draw(self, context, &mut canvas)?;
+
+        Draw::<Vec<Enemy>>::draw(self, context, &mut canvas)?;
 
         // post effects
         // Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;

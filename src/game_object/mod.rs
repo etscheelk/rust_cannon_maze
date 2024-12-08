@@ -3,6 +3,7 @@ pub mod missile;
 pub mod player;
 pub mod enemy_wall;
 pub mod grid;
+pub mod enemy;
 
 /// test test
 

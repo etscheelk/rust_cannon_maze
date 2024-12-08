@@ -128,8 +128,8 @@ impl crate::FixedUpdate<Vec<Chunk>> for crate::MainState
         // get mouse click location and map it to a cell and fill it if possible
         if let Some(mut pos) = self.input_state.mouse_click
         {
+            // let mut pos: Vec2 = context.mouse.position().into();
             // map mouse click to somewhere in world coordinate space
-            // Assume top left of the window is always 0, 0
             pos = pos / 16.0 + self.world_pos;
 
             for chunk in chunks
@@ -183,13 +183,7 @@ impl crate::Draw<Vec<Chunk>> for crate::MainState
                     graphics::DrawParam::new()
                     .dest(dest_pos)
                     .z(-100);
-                // if object.foreground_object == ObjectType::None {
-                //     canvas.draw(&self.assets.basic_object, params);
-                // }
-                // else
-                // {
-                //     let img = graphics::Image::from_path(context, "/FilledObject.png");
-                // }
+
                 match object.foreground_object
                 {
                     ObjectType::Filled =>
@@ -199,9 +193,6 @@ impl crate::Draw<Vec<Chunk>> for crate::MainState
                     },
                     _ => canvas.draw(&self.assets.basic_object, params),
                 };
-                // let params = 
-                //     graphics::DrawParam::new()
-                //     .dest(pos.0 + 16.0 * object.id.a() as f32);
             }
         }
 
