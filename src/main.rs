@@ -1,7 +1,8 @@
-use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}};
+use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, CollisionBox, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
+use crate::game_object::HasCollisionBox;
 
 // local imports
 mod game_object;
@@ -74,7 +75,11 @@ impl MainState
 
         let world_pos = [0.0, 0.0].into();
 
-        let enemies = vec![Enemy::default().position([12.0, 5.0].into())];
+        let enemies = vec![
+            Enemy::default()
+            .position_set((12.0, 5.0).into())
+            .collision_box_set(((-0.75, -0.75), (0.75, 0.75)).into())
+        ];
 
         let s = MainState
         {

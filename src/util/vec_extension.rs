@@ -1,4 +1,6 @@
-use ggez::glam::Vec2;
+use std::ops::AddAssign;
+
+use ggez::glam::{Vec2, Vec2Swizzles};
 
 pub(crate) trait RotateBy
 {
@@ -35,6 +37,22 @@ impl Flip for Vec2
     fn flip_y(mut self) -> Self {
         self.y = -self.y;
         self
+    }
+}
+
+pub trait MyAdd<RHS>
+{
+    fn my_add(&mut self, r: RHS) -> ();
+}
+
+impl<T> MyAdd<T> for std::ops::Range<T>
+where
+    T: std::ops::Add + std::ops::AddAssign + Copy
+{
+    fn my_add(&mut self, r: T) -> () 
+    {
+        self.start += r;
+        self.end += r;    
     }
 }
 
