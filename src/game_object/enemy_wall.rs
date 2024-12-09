@@ -1,5 +1,6 @@
 use ggez::glam::Vec2;
 use ggez::graphics;
+use serde::{Deserialize, Serialize};
 
 use crate::util::hash_map_tracker::{ForTracker, HashMapTracker, WithIndex};
 use crate::MainState;

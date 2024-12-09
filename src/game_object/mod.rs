@@ -74,10 +74,12 @@ macro_rules! has_position {
 
 pub(crate) use has_position;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CollisionBox
 {
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub p0: Vec2,
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub p1: Vec2,
 }
 
@@ -222,3 +224,4 @@ macro_rules! has_collision_box {
 }
 
 pub(crate) use has_collision_box;
+use serde::{Deserialize, Serialize};

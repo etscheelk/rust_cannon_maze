@@ -1,6 +1,16 @@
-use std::ops::AddAssign;
+use serde::{Serialize, Deserialize};
 
-use ggez::glam::{Vec2, Vec2Swizzles};
+use ggez::glam::Vec2;
+
+/// A (de)serializable form of Vec2, since
+/// Vec2 does not implement Serialize
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Vec2")]
+pub struct _Vec2Ser
+{
+    x: f32,
+    y: f32
+}
 
 pub(crate) trait RotateBy
 {

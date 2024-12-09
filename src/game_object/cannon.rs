@@ -2,6 +2,7 @@ use core::f32;
 use std::f32::consts::PI;
 
 use ggez::glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 use crate::{util::vec_extension::RotateBy, MainState};
 
@@ -14,12 +15,13 @@ pub enum RotateDir
     Right
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cannon
 {
     // Unit vector denoting direction
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub facing: Vec2,
-
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub position: Vec2,
     rot_vel: f32,
 }

@@ -1,12 +1,15 @@
 use ggez::glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 // local imports
 use crate::{util::{hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, vec_extension::Flip}, MainState};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Missile
 {
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pos: Vec2,
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     vel: Vec2,
     _size: (f32, f32),
     index: Option<u16>,

@@ -1,14 +1,16 @@
 use ggez::glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 use crate::game_object::HasCollisionBox;
 
 use super::{has_collision_box, has_position, CollisionBox};
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Enemy
 {
     health: i32,
     collision_box: CollisionBox,
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     position: Vec2
 }
 

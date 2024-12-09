@@ -2,7 +2,10 @@ use std::ops::{Index, IndexMut};
 
 use ggez::glam::Vec2;
 
-#[derive(Debug, Clone, Default, Copy)]
+use serde::{Serialize, Deserialize};
+use serde_with::serde_as;
+
+#[derive(Debug, Clone, Default, Copy, Serialize, Deserialize)]
 pub struct Object
 {
     pub background_object: ObjectType,
@@ -12,7 +15,7 @@ pub struct Object
 
 /// permits the packaging of two four-bit numbers into the size of 8 bits
 /// each a-b has a value 0-15
-#[derive(Copy, Clone, Default, Hash)]
+#[derive(Copy, Clone, Default, Hash, Serialize, Deserialize)]
 pub struct PackedU8(u8);
 
 impl PackedU8
@@ -59,7 +62,7 @@ impl From<(f32, f32)> for PackedU8
     }
 }
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default, Copy, Serialize, Deserialize)]
 pub enum ObjectType
 {
     #[default]
@@ -67,12 +70,16 @@ pub enum ObjectType
     Filled
 }
 
-#[derive(Debug, Clone)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk
 {
     // array of 16x16 cells
+    #[serde_as(as = "[_; 256]")]
     pub array: [Object; 256],
     pub id: PackedU8,
+
+    #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub upper_left_position: Vec2,
 }
 

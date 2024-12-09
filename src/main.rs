@@ -1,5 +1,6 @@
 use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, CollisionBox, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
+use serde::{Deserialize, Serialize};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
 use crate::game_object::HasCollisionBox;
@@ -258,6 +259,12 @@ impl ggez::event::EventHandler for MainState
             },
             None => ()
         };
+
+        if input.keycode == Some(Space)
+        {
+            let s = postcard::to_stdvec(self.enemies[0].collision_box_get()).unwrap();
+            println!("enemy serialized: {:?}", s);
+        }
 
         self.world_pos += apply_movement;
 
