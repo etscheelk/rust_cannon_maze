@@ -73,7 +73,7 @@ impl MainState
         let chunk: Chunk = Chunk::default();
         let chunks = vec![chunk];
 
-        let world_pos = [0.0, 0.0].into();
+        let world_pos = [0.5, 0.5].into();
 
         let enemies = vec![
             Enemy::default()
@@ -241,6 +241,25 @@ impl ggez::event::EventHandler for MainState
         {
             self.input_state.cannon_rotate = Some(RotateDir::Right);
         }
+
+        let mut apply_movement = Vec2::ZERO;
+        match input.keycode
+        {
+            Some(a) =>
+            {
+                match a
+                {
+                    W => apply_movement.y -= 1.0,
+                    S => apply_movement.y += 1.0,
+                    A => apply_movement.x -= 1.0,
+                    D => apply_movement.x += 1.0,
+                    _ => ()
+                }
+            },
+            None => ()
+        };
+
+        self.world_pos += apply_movement;
 
         Ok(())
     }

@@ -128,7 +128,6 @@ impl CollisionBox
         {
             color = graphics::Color::BLACK;
         }
-
         
         let mesh = 
             graphics::Mesh::new_polygon(

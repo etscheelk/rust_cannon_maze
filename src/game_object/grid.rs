@@ -170,14 +170,12 @@ impl crate::Draw<Vec<Chunk>> for crate::MainState
 
         for chunk in chunks
         {
-            let pos = chunk.upper_left_position;
+            let pos = chunk.upper_left_position - self.world_pos;
             for object in chunk.array
             {
                 // object will get drawn to screen at a*16 + ul.x, a*16 + ul.y
-                let dest_pos: Vec2 = [
-                    pos.x + 16.0 * object.id.a() as f32,
-                    pos.y + 16.0 * object.id.b() as f32
-                ].into();
+                let dest_pos = 
+                    16.0 * (pos + Vec2::new(object.id.a() as f32, object.id.b() as f32));
 
                 let params = 
                     graphics::DrawParam::new()
