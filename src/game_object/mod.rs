@@ -6,6 +6,7 @@ pub mod grid;
 pub mod enemy;
 
 use ggez::glam::Vec2;
+use serde::{Deserialize, Serialize};
 
 /// Update is a trait describing an object which should be updated every single frame
 pub(crate) trait Update<I>
@@ -75,15 +76,30 @@ macro_rules! has_position {
 pub(crate) use has_position;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct CollisionBox
+pub struct Region<T: ColliderType>
 {
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub p0: Vec2,
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub p1: Vec2,
+    t: std::marker::PhantomData<T>
 }
 
-impl CollisionBox
+pub trait ColliderType {}
+
+pub mod collider_type
+{
+    use serde::{Serialize, Deserialize};
+
+    use super::ColliderType; 
+
+    #[derive(Default, Clone, Debug, Serialize, Deserialize)]
+    pub struct Collider; impl ColliderType for Collider {}
+    #[derive(Default, Clone, Debug, Serialize, Deserialize)]
+    pub struct Selection; impl ColliderType for Selection {}
+}
+
+impl<T: ColliderType> Region<T>
 {
     const DRAWN_COLOR: ggez::graphics::Color = ggez::graphics::Color::MAGENTA;
 
@@ -92,10 +108,11 @@ impl CollisionBox
         assert!(p0.x <= p1.x);
         assert!(p0.y <= p1.y);
 
-        CollisionBox 
+        Region::<T>
         {
             p0,
-            p1
+            p1,
+            t: std::marker::PhantomData
         }
     }
 
@@ -115,7 +132,7 @@ impl CollisionBox
         canvas: &mut ggez::graphics::Canvas
     ) -> ggez::GameResult
     where
-        Parent: HasCollisionBox 
+        Parent: HasRegion<T> 
     {
         use ggez::graphics;
 
@@ -134,7 +151,7 @@ impl CollisionBox
         let mouse_world_pos = mouse_pos / 16.0 + world_pos;
 
         let mut color = graphics::Color::MAGENTA;
-        if parent.intersects_collision_box(mouse_world_pos)
+        if parent.intersects_region(mouse_world_pos)
         {
             color = graphics::Color::BLACK;
         }
@@ -170,19 +187,19 @@ impl CollisionBox
 //     }
 // }
 
-impl From<(Vec2, Vec2)> for CollisionBox
+impl<T: ColliderType> From<(Vec2, Vec2)> for Region::<T>
 {
     fn from(value: (Vec2, Vec2)) -> Self 
     {
-        CollisionBox { p0: value.0, p1: value.1 }    
+        Region::<T> { p0: value.0, p1: value.1, t: std::marker::PhantomData }    
     }
 }
 
-impl From<((f32, f32), (f32, f32))> for CollisionBox
+impl<T: ColliderType> From<((f32, f32), (f32, f32))> for Region::<T>
 {
     fn from(value: ((f32, f32), (f32, f32))) -> Self 
     {
-        CollisionBox { p0: value.0.into(), p1: value.1.into() }    
+        Region::<T> { p0: value.0.into(), p1: value.1.into(), t: std::marker::PhantomData }    
     }
 }
 
@@ -191,37 +208,36 @@ impl From<((f32, f32), (f32, f32))> for CollisionBox
 /// 
 /// You should probably avoid implementing this yourself and use
 /// proc-macro `has_collision_box!` instead.
-pub(crate) trait HasCollisionBox: HasPosition
+pub trait HasRegion<T: ColliderType>: HasPosition
 {
-    fn collision_box_get(&self) -> &CollisionBox;
+    fn region_get(&self) -> &Region::<T>;
 
-    fn collision_box_set(self, collision_box: CollisionBox) -> Self;
+    fn region_set(self, collision_box: Region::<T>) -> Self;
 
-    fn intersects_collision_box(&self, world_pos: Vec2) -> bool
+    fn intersects_region(&self, world_pos: Vec2) -> bool
     {
         let local_pos = world_pos - self.position_get();
-        self.collision_box_get().intersects(local_pos)
+        self.region_get().intersects(local_pos)
     }
 }
 
-macro_rules! has_collision_box {
-    ($struct_name:ident) => 
+macro_rules! has_region {
+    ($struct_name:ty, $field_name:ident, $collider_type:ty) => 
     {
-        impl crate::game_object::HasCollisionBox for $struct_name
+        impl crate::game_object::HasRegion<$collider_type> for $struct_name
         {
-            fn collision_box_get(&self) -> &CollisionBox
+            fn region_get(&self) -> &Region<$collider_type>
             {
-                &self.collision_box
+                &self.$field_name
             }
 
-            fn collision_box_set(mut self, collision_box: CollisionBox) -> Self
+            fn region_set(mut self, $field_name: Region<$collider_type>) -> Self
             {
-                self.collision_box = collision_box;
+                self.$field_name = $field_name;
                 self
             }
         }    
     };
 }
 
-pub(crate) use has_collision_box;
-use serde::{Deserialize, Serialize};
+pub(crate) use has_region;

@@ -1,21 +1,22 @@
 use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::game_object::HasCollisionBox;
+use crate::game_object::HasRegion;
 
-use super::{has_collision_box, has_position, CollisionBox};
+use super::{has_region, has_position, Region, collider_type::*};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Enemy
 {
     health: i32,
-    collision_box: CollisionBox,
+    collision_region: Region::<Collider>,
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     position: Vec2
 }
 
 has_position!(Enemy);
-has_collision_box!(Enemy);
+has_region!(Enemy, collision_region, Collider);
+
 
 impl crate::FixedUpdate<Vec<Enemy>> for crate::MainState
 {
@@ -55,7 +56,7 @@ impl crate::Draw<Vec<Enemy>> for crate::MainState
             canvas.draw(&img, params);
 
 
-            enemy.collision_box_get().draw(enemy, self.world_pos, screen_pos, context, canvas)?;
+            HasRegion::<Collider>::region_get(enemy).draw(enemy, self.world_pos, screen_pos, context, canvas)?;
         }
         
         Ok(())    

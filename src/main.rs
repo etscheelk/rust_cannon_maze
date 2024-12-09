@@ -1,9 +1,9 @@
-use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, CollisionBox, HasPosition};
+use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, Region, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use serde::{Deserialize, Serialize};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
-use crate::game_object::HasCollisionBox;
+use crate::game_object::HasRegion;
 
 // local imports
 mod game_object;
@@ -79,7 +79,7 @@ impl MainState
         let enemies = vec![
             Enemy::default()
             .position_set((12.0, 5.0).into())
-            .collision_box_set(((-0.75, -0.75), (0.75, 0.75)).into())
+            .region_set(((-0.75, -0.75), (0.75, 0.75)).into())
         ];
 
         let s = MainState
@@ -262,7 +262,7 @@ impl ggez::event::EventHandler for MainState
 
         if input.keycode == Some(Space)
         {
-            let s = postcard::to_stdvec(self.enemies[0].collision_box_get()).unwrap();
+            let s = postcard::to_stdvec(self.enemies[0].region_get()).unwrap();
             println!("enemy serialized: {:?}", s);
         }
 

@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use ggez::glam::Vec2;
 
 /// A (de)serializable form of Vec2, since
-/// Vec2 does not implement Serialize
+/// glam::Vec2 does not implement Serialize
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Vec2")]
 pub struct _Vec2Ser
