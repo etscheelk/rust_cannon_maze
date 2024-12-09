@@ -25,8 +25,6 @@ impl crate::FixedUpdate<Vec<Enemy>> for crate::MainState
     }
 }
 
-
-
 impl crate::Draw<Vec<Enemy>> for crate::MainState
 {
     fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 

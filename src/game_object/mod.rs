@@ -40,6 +40,14 @@ pub(crate) trait DrawMut<I>
     fn draw_mut(&mut self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult;
 }
 
+/// A trait providing that a type has a field `position` with
+/// an applicable getter and setter.
+/// 
+/// You should probably avoid implementing this yourself and instead
+/// use `has_position!` proc-macro.
+/// 
+/// FIXME or TRYME: Make this trait dyn-possible by making position_set 
+/// not return type self, and instead make it &mut self.
 pub trait HasPosition
 {
     fn position_set(self, position: Vec2) -> Self;
@@ -176,6 +184,11 @@ impl From<((f32, f32), (f32, f32))> for CollisionBox
     }
 }
 
+/// A trait providing that a type has a field `collision_box`
+/// with the appropriate getters and setters.
+/// 
+/// You should probably avoid implementing this yourself and use
+/// proc-macro `has_collision_box!` instead.
 pub(crate) trait HasCollisionBox: HasPosition
 {
     fn collision_box_get(&self) -> &CollisionBox;
