@@ -10,12 +10,14 @@ pub struct Enemy
 {
     health: i32,
     collision_region: Region::<Collider>,
+    selection_region: Region::<Selection>,
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     position: Vec2
 }
 
 has_position!(Enemy);
 has_region!(Enemy, collision_region, Collider);
+has_region!(Enemy, selection_region, Selection);
 
 
 impl crate::FixedUpdate<Vec<Enemy>> for crate::MainState

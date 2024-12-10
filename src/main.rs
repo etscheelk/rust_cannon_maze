@@ -77,9 +77,13 @@ impl MainState
         let world_pos = [0.5, 0.5].into();
 
         let enemies = vec![
-            Enemy::default()
-            .position_set((12.0, 5.0).into())
-            .region_set(((-0.75, -0.75), (0.75, 0.75)).into())
+            // <Enemy::default()
+            // .position_set((12.0, 5.0).into()) as HasRegion<game_object::collider_type::Collider>>::region_set()
+            // .region_set(((-0.75, -0.75), (0.75, 0.75)).into())
+
+            HasRegion::<game_object::collider_type::Collider>::region_set(
+                Enemy::default().position_set((12.0, 5.0).into()), 
+                ((-0.75, -0.75), (0.75, 0.75)).into())
         ];
 
         let s = MainState
@@ -181,7 +185,6 @@ impl ggez::event::EventHandler for MainState
         {
             // FixedUpdate::<Player>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
-            FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
         }
@@ -262,8 +265,11 @@ impl ggez::event::EventHandler for MainState
 
         if input.keycode == Some(Space)
         {
-            let s = postcard::to_stdvec(self.enemies[0].region_get()).unwrap();
-            println!("enemy serialized: {:?}", s);
+            let s = postcard::to_stdvec(HasRegion::<game_object::collider_type::Collider>::region_get(&self.enemies[0])).unwrap();
+            println!("enemy collider: {:?}", s);
+
+            let s = postcard::to_stdvec(HasRegion::<game_object::collider_type::Selection>::region_get(&self.enemies[0])).unwrap();
+            println!("enemy selection: {:?}", s);
         }
 
         self.world_pos += apply_movement;
