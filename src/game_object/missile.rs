@@ -138,15 +138,19 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
             { 
                 dest: missile_screen_pos.into(), 
                 rotation,
-                scale: [3.0, 3.0].into(), 
+                scale: [1.0, 1.0].into(), 
                 // offset: [0.0, self.assets.missile_image.height() as f32 / 2.0].into()
-                offset: Vec2::from([0.0, 8.0]).rotate_by(rotation).into()
+                // offset: Vec2::from([0.0, 0.0]).rotate_by(rotation).into()
+                offset: [0.0, 8.0].into(), // offset by half the asset's height
             };
+
+            let big_missile = graphics::Image::from_path(context, "/missile_big.png")?;
 
             let param = 
                 graphics::DrawParam::new()
                 .transform(transform.to_bare_matrix());
-            canvas.draw(&self.assets.missile_image, param);
+            // canvas.draw(&self.assets.missile_image, param);
+            canvas.draw(&big_missile, param);
 
             missile.region_get().draw(missile, self.world_pos, missile_screen_pos, context, canvas)?;
         }

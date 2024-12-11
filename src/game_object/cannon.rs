@@ -116,7 +116,7 @@ impl crate::Draw<Cannon> for crate::MainState
 
         // let offset_pos: Vec2 = [0.0, cannon_image.height() as f32 / 2.0].into();
 
-        let cannon_screen_pos = 16.0 * (cannon.position_get() - self.world_pos + 0.5);
+        let cannon_screen_pos = 16.0 * (cannon.position_get() - self.world_pos);
 
         let transform = 
         graphics::Transform::Values 
