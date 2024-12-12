@@ -1,75 +1,61 @@
-#[derive(Debug, Clone, Copy)]
-pub struct Message<T>(pub T, pub f32);
-
-impl<T> Message<T>
-{
-    pub fn new(t: T, lifetime: f32) -> Self
-    {
-        Message(t, lifetime)
-    }
-
-    pub fn act<ACTION>(mut self, predicate: bool, mut action: ACTION, dt: f32) -> Option<Self>
-    where
-        // PRED: FnOnce() -> bool,
-        ACTION: FnMut() -> (),
-    {
-        if predicate
-        {
-            action();
-            None
-        }
-        else
-        {
-            self.1 -= dt;
-            if self.1 < 0.0 
-            { 
-                // println!("timer expired"); 
-                None 
-            }
-            else { Some(self) }
-        }
-    }
-}
+use serde::{Deserialize, Serialize};
 
 type Duration = f32;
 
-#[derive(Debug, Clone, Copy, Default)]
-pub enum Message2<I>
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+pub enum Message<I>
 {
-    Alive(I),
-    Dying(I, Duration),
+    Active(I),
+    ActiveTicking(I, Duration),
     
     #[default]
-    Dead
+    Inactive
 }
 
-impl <I> Message2<I>
+impl <I> Message<I>
 {
-    pub fn create_dying(i: I, d: Duration) -> Self
+    pub fn create_active_ticking(value: I, duration: Duration) -> Self
     {
-        Self::Dying(i, d)
+        Self::ActiveTicking(value, duration)
     }
 
-    pub fn set_dying(self, i: I, d: Duration) -> Self
+    pub fn set_active_ticking(self, value: I, duration: Duration) -> Self
     {
-        Self::create_dying(i, d)
+        Self::create_active_ticking(value, duration)
     }
 
     // Gets the associated value contained in the message, if it exists
     pub fn get_value(&self) -> Option<&I>
     {
-        use Message2::*;
+        use Message::*;
         match self
         {
-            Alive(i) | Dying(i, _) =>
+            Active(i) | ActiveTicking(i, _) =>
             {
                 Some(i)
             },
-            Dead => None,
+            Inactive => None,
         }
     }
 
-    
+    pub fn tick(&mut self, dt: f32)
+    {
+        use Message::*;
+
+        match *self
+        {
+            ActiveTicking(_, ref mut time) =>
+            {
+                *time -= dt;
+
+                if *time < 0.0
+                {
+                    *self = Inactive
+                }
+            },
+            _ => (),
+        };
+    }
 }
 
 // impl<I> crate::GameObject<Message2<I>> for Message2<I>
