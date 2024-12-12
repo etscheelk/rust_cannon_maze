@@ -57,12 +57,12 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         
 
         // add a missile if necessary
-        if let Some(_mouse_click_point) = self.input_state.mouse_click
+        if let Some(_mouse_click_point) = self.input_state.left_click
         {
             // let mut vel = 50.0 * self.cannon.facing;
             // vel.y *= -1.0;
 
-            let mut missile_vel = 2.0 * self.cannon.facing;
+            let mut missile_vel = 20.0 * self.cannon.facing;
             missile_vel = missile_vel.flip_y();
             // missile_vel.y *= -1.0; // account for flipped coords
             
@@ -85,7 +85,7 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
             // let m = Missile::new(point, missile_vel);
             missiles.push(m);
         }
-        self.input_state.mouse_click = None;
+        self.input_state.left_click = None;
 
         // TODO: Do this boundary check elsewhere, in the first loop over all
         missiles

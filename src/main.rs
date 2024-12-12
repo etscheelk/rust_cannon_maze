@@ -12,7 +12,7 @@ mod util;
 use crate::game_object::{
     cannon::{Cannon, RotateDir}, 
     missile::Missile, 
-    player::Player, 
+    // player::Player, 
     Draw, 
     FixedUpdate, 
     Update
@@ -23,7 +23,6 @@ struct MainState
     screen: ggez::graphics::ScreenImage,
     input_state: InputState,
     assets: Assets,
-    player: Player,
     
     periscope: PeriscopeUniform,
     periscope_shader: ggez::graphics::Shader,
@@ -56,7 +55,7 @@ impl MainState
                 1.0, 1.0, 1
             );
         let assets = Assets::new(context)?;
-        let player = Player::default().feet_offset([0.0, 20.0].into()).grounded(false);
+        // let player = Player::default().feet_offset([0.0, 20.0].into()).grounded(false);
         let periscope = PeriscopeUniform::new([0.0, 0.0], 0.5);
         let periscope_shader = 
             ggez::graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
@@ -91,7 +90,6 @@ impl MainState
             input_state,
             screen,
             assets,
-            player,
             periscope,
             periscope_shader,
             cannon,
@@ -109,7 +107,7 @@ impl MainState
 #[derive(Default)]
 struct InputState
 {
-    mouse_click: Option<Vec2>,
+    left_click: Option<Vec2>,
     cannon_rotate: Option<RotateDir>
 }
 
@@ -183,7 +181,6 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
-            // FixedUpdate::<Player>::fixed_update(self, context)?;
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
@@ -204,7 +201,6 @@ impl ggez::event::EventHandler for MainState
         // pixel scaling, nearest-neighbor
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
 
-        // Draw::<Player>::draw(self, context, &mut canvas)?;
         Draw::<Cannon>::draw(self, context, &mut canvas)?;
         Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
 
@@ -231,37 +227,25 @@ impl ggez::event::EventHandler for MainState
         ) -> ggez::GameResult 
     {
         use ggez::input::keyboard::KeyCode::*;
-        if input.keycode == Some(Space)
-        {
-            self.player.issue_jump();
-        }
 
-        if input.keycode == Some(Left)
-        {
-            self.input_state.cannon_rotate = Some(RotateDir::Left);
-        }
-
-        if input.keycode == Some(Right)
-        {
-            self.input_state.cannon_rotate = Some(RotateDir::Right);
-        }
+        let ref mut input_state = self.input_state;
 
         let mut apply_movement = Vec2::ZERO;
-        match input.keycode
+        if let Some(kc) = input.keycode
         {
-            Some(a) =>
+            match kc
             {
-                match a
-                {
-                    W => apply_movement.y -= 1.0,
-                    S => apply_movement.y += 1.0,
-                    A => apply_movement.x -= 1.0,
-                    D => apply_movement.x += 1.0,
-                    _ => ()
-                }
-            },
-            None => ()
+                Left    => input_state.cannon_rotate = Some(RotateDir::Left),
+                Right   => input_state.cannon_rotate = Some(RotateDir::Right),
+                W       => apply_movement.y -= 1.0,
+                S       => apply_movement.y += 1.0,
+                A       => apply_movement.x -= 1.0,
+                D       => apply_movement.x += 1.0, 
+                _       => ()
+            };
         };
+
+        self.world_pos += apply_movement;
 
         if input.keycode == Some(Space)
         {
@@ -271,8 +255,6 @@ impl ggez::event::EventHandler for MainState
             let s = postcard::to_stdvec(HasRegion::<game_object::collider_type::Selection>::region_get(&self.enemies[0])).unwrap();
             println!("enemy selection: {:?}", s);
         }
-
-        self.world_pos += apply_movement;
 
         Ok(())
     }
@@ -285,9 +267,16 @@ impl ggez::event::EventHandler for MainState
     {
         use ggez::input::keyboard::KeyCode::*;
 
-        if input.keycode == Some(Left) || input.keycode == Some(Right)
+        let ref mut input_state = self.input_state;
+
+        if let Some(kc) = input.keycode
         {
-            self.input_state.cannon_rotate = None;
+            match kc
+            {
+                Left | 
+                Right   => input_state.cannon_rotate = None,
+                _       => ()
+            }
         }
 
         Ok(())    
@@ -302,11 +291,36 @@ impl ggez::event::EventHandler for MainState
         ) -> ggez::GameResult 
     {
         use ggez::event::MouseButton::*;
-        if button == Left
+
+        let ref mut input_state = self.input_state;
+
+        match button
         {
-            self.input_state.mouse_click = Some([x, y].into());
-        }
+            Left    => input_state.left_click = Some([x, y].into()),
+            _       => (),
+        };
         
+        Ok(())
+    }
+
+    fn mouse_button_up_event(
+            &mut self,
+            _ctx: &mut ggez::Context,
+            button: ggez::event::MouseButton,
+            _x: f32,
+            _y: f32,
+        ) -> ggez::GameResult
+    {
+        use ggez::event::MouseButton::*;
+
+        let ref mut input_state = self.input_state;
+        
+        match button
+        {
+            Left    => input_state.left_click = None,
+            _       => (),
+        }
+
         Ok(())
     }
 }

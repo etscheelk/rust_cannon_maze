@@ -13,7 +13,7 @@ use super::has_position;
 pub enum RotateDir
 {
     Left,
-    Right
+    Right,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

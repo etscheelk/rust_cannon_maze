@@ -133,7 +133,7 @@ impl crate::FixedUpdate<Vec<Chunk>> for crate::MainState
         let ref mut chunks = self.chunks;
 
         // get mouse click location and map it to a cell and fill it if possible
-        if let Some(mut pos) = self.input_state.mouse_click
+        if let Some(mut pos) = self.input_state.left_click
         {
             // let mut pos: Vec2 = context.mouse.position().into();
             // map mouse click to somewhere in world coordinate space
