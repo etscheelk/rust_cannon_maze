@@ -54,38 +54,6 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
         {
             missile.position += missile.vel * MainState::FIXED_PHYSICS_TIMESTEP;
         }
-        
-
-        // add a missile if necessary
-        if let Some(_mouse_click_point) = self.input_state.left_click
-        {
-            // let mut vel = 50.0 * self.cannon.facing;
-            // vel.y *= -1.0;
-
-            let mut missile_vel = 20.0 * self.cannon.facing;
-            missile_vel = missile_vel.flip_y();
-            // missile_vel.y *= -1.0; // account for flipped coords
-            
-            
-            // the spawn point of the missile should be the cannon's tip
-            // for now, we'll add the width of the cannon asset and account for its rotation
-            // FIXME, this is terrible, do not base your spawning off of your assets
-            // make the spawning fixed and modify assets
-            // FIXME, image size does not account for having scaled it
-            // let pos: Vec2 = self.cannon.position + self.assets.cannon_image.width() as f32 * self.cannon.facing.flip_y() / 16.0;
-            
-            // spawn offset from cannon (number of world units)
-            let barrel_length = 3.0;
-            let pos: Vec2 = self.cannon.position + barrel_length * self.cannon.facing.flip_y();
-            let m = Missile::new(pos, missile_vel);
-
-            println!("new missile pos: {pos}");
-
-            // let m = Missile::new(point, 50.0 * self.cannon.facing);
-            // let m = Missile::new(point, missile_vel);
-            missiles.push(m);
-        }
-        self.input_state.left_click = None;
 
         // TODO: Do this boundary check elsewhere, in the first loop over all
         missiles

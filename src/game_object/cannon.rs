@@ -1,11 +1,11 @@
 use core::f32;
-use std::f32::consts::PI;
+use std::{default, f32::consts::PI};
 
 use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::{game_object::HasPosition, util::vec_extension::RotateBy, MainState};
-use super::has_position;
+use crate::{game_object::HasPosition, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
+use super::{has_position, missile::Missile};
 
 // use crate::util::vec_extension::*;
 
@@ -25,6 +25,7 @@ pub struct Cannon
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub position: Vec2,
     rot_vel: f32,
+    refire_block: Message<()>
 }
 
 has_position!(Cannon);
@@ -34,13 +35,15 @@ impl Default for Cannon
     /// Spawn the cannon in the center of the screen
     fn default() -> Self {
         let center_pos = [0.0, 0.0].into();
-        Self { facing: Vec2::X, position: center_pos, rot_vel: 0.0 }
+        Self { facing: Vec2::X, position: center_pos, rot_vel: 0.0, refire_block: Default::default() }
     }
 }
 
 impl Cannon
 {
     const VELOCITY : f32 = 50.0;
+    const REFIRE_DELAY: f32 = 1.0;
+    const BARREL_LENGTH: f32 = 3.0;
     
     /// constants relateed to rotation of cannon.
     /// Numbers seem to act twice as high as expected
@@ -50,12 +53,11 @@ impl Cannon
 
     fn new(facing: Vec2, position: Vec2) -> Self
     {
-        Self
-        {
-            facing,
-            position,
-            rot_vel: 0.0,
-        }
+        let mut s = Self::default();
+        s.facing = facing;
+        s.position = position;
+
+        s
     }
 }
 
@@ -63,6 +65,23 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
 {
     fn fixed_update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
         let ref mut cannon = self.cannon;
+
+        let ref input_state = self.input_state;
+        if let Some(_) = input_state.left_click
+        {
+            if let Message::Inactive = cannon.refire_block
+            {
+                // fire a missile
+                let missile_vel = 20.0 * cannon.facing.flip_y();
+                let spawn_pos = cannon.position + Cannon::BARREL_LENGTH * cannon.facing.flip_y();
+
+                let m = Missile::new(spawn_pos, missile_vel);
+                self.missiles.push(m);
+
+                // set refire block with refire delay
+                cannon.refire_block = Message::create_active_ticking((), Cannon::REFIRE_DELAY);
+            }
+        }
 
         let mut new_rot_vel: f32 = 0.0;
         match self.input_state.cannon_rotate
@@ -101,6 +120,8 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
 
         cannon.rot_vel = new_rot_vel;
         cannon.facing = cannon.facing.rotate_by(cannon.rot_vel * MainState::FIXED_PHYSICS_TIMESTEP);
+
+        cannon.refire_block.tick(MainState::FIXED_PHYSICS_TIMESTEP);
 
         Ok(())
     }
