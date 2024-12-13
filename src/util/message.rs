@@ -48,18 +48,14 @@ impl<I> Message<I>
     {
         use Message::*;
 
-        match *self
+        if let ActiveTicking(_, time) = self
         {
-            ActiveTicking(_, ref mut time) =>
-            {
-                *time -= dt;
+            *time -= dt;
 
-                if *time < 0.0
-                {
-                    *self = Inactive
-                }
-            },
-            _ => (),
-        };
+            if *time < 0.0
+            {
+                *self = Inactive;
+            }
+        }
     }
 }
