@@ -1,13 +1,11 @@
 use core::f32;
-use std::{default, f32::consts::PI};
+use std::f32::consts::PI;
 
 use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::{game_object::HasPosition, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
 use super::{has_position, missile::Missile};
-
-// use crate::util::vec_extension::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RotateDir
@@ -25,7 +23,7 @@ pub struct Cannon
     #[serde(with = "crate::util::vec_extension::_Vec2Ser")]
     pub position: Vec2,
     rot_vel: f32,
-    refire_block: Message<()>
+    refire_block: Message
 }
 
 has_position!(Cannon);
@@ -41,7 +39,7 @@ impl Default for Cannon
 
 impl Cannon
 {
-    const VELOCITY : f32 = 50.0;
+    const VELOCITY : f32 = 20.0;
     const REFIRE_DELAY: f32 = 1.0;
     const BARREL_LENGTH: f32 = 3.0;
     
@@ -66,20 +64,22 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
     fn fixed_update(&mut self, _context: &mut ggez::Context) -> ggez::GameResult {
         let ref mut cannon = self.cannon;
 
+        // Handle potential fire-action (if unblocked)
+        // check that mouse is clicked & refire block is inactive
         let ref input_state = self.input_state;
         if let Some(_) = input_state.left_click
         {
             if let Message::Inactive = cannon.refire_block
             {
                 // fire a missile
-                let missile_vel = 20.0 * cannon.facing.flip_y();
+                let missile_vel = Cannon::VELOCITY * cannon.facing.flip_y();
                 let spawn_pos = cannon.position + Cannon::BARREL_LENGTH * cannon.facing.flip_y();
 
                 let m = Missile::new(spawn_pos, missile_vel);
                 self.missiles.push(m);
 
                 // set refire block with refire delay
-                cannon.refire_block = Message::create_active_ticking((), Cannon::REFIRE_DELAY);
+                cannon.refire_block.set_active_ticking((), Cannon::REFIRE_DELAY);
             }
         }
 
@@ -135,8 +135,6 @@ impl crate::Draw<Cannon> for crate::MainState
         let ref cannon = self.cannon;
         let ref cannon_image = self.assets.cannon_image;
 
-        // let offset_pos: Vec2 = [0.0, cannon_image.height() as f32 / 2.0].into();
-
         let cannon_screen_pos = 16.0 * (cannon.position_get() - self.world_pos);
 
         let transform = 
@@ -151,16 +149,8 @@ impl crate::Draw<Cannon> for crate::MainState
         let param = 
             graphics::DrawParam::new()
             .transform(transform.to_bare_matrix());
-            // .transform(transform);
-            // .dest(cannon.position)
-            // // .offset([20.0, 20.0])
-            // .rotation(cannon.facing.angle_between(Vec2::X))
-            // .scale([2.0, 2.0]);
 
         canvas.draw(cannon_image, param);
-
-        
-
 
         let center_dot = graphics::Quad;
         let center_param = 
@@ -170,7 +160,6 @@ impl crate::Draw<Cannon> for crate::MainState
             .scale([2.0, 2.0]);
 
         canvas.draw(&center_dot, center_param);
-
 
         Ok(())
     }

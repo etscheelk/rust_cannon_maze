@@ -2,39 +2,45 @@ use serde::{Deserialize, Serialize};
 
 type Duration = f32;
 
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
-pub enum Message<I>
+pub enum Message<I = ()>
 {
-    Active(I),
+    ActiveWithValue(I),
     ActiveTicking(I, Duration),
     
     #[default]
-    Inactive
+    Inactive,
 }
 
-impl <I> Message<I>
+impl<I> Message<I>
 {
+    pub fn create_active(value: I) -> Self
+    {
+        Message::ActiveWithValue(value)
+    }
+
     pub fn create_active_ticking(value: I, duration: Duration) -> Self
     {
         Self::ActiveTicking(value, duration)
     }
 
-    pub fn set_active_ticking(self, value: I, duration: Duration) -> Self
+    pub fn /*(I am here haha)*/set_active_ticking(&mut self, value: I, duration: Duration)
     {
-        Self::create_active_ticking(value, duration)
+        *self = Message::ActiveTicking(value, duration);
     }
 
-    // Gets the associated value contained in the message, if it exists
-    pub fn get_value(&self) -> Option<&I>
+    /// Gets the associated value contained in the message, if it exists.
+    pub fn is_active(&self) -> Option<&I>
     {
         use Message::*;
         match self
         {
-            Active(i) | ActiveTicking(i, _) =>
+            ActiveWithValue(i) | ActiveTicking(i, _) =>
             {
                 Some(i)
             },
-            Inactive => None,
+            _ => None,
         }
     }
 
@@ -57,12 +63,3 @@ impl <I> Message<I>
         };
     }
 }
-
-// impl<I> crate::GameObject<Message2<I>> for Message2<I>
-// {
-//     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
-//     {
-        
-//         Ok(())
-//     }
-// }
