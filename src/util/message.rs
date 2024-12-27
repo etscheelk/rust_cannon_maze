@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+// TODO: Modify durations to be represented in terms of ticks
+// a 1 second message will tick 61 times, due to float imprecision.
+// This could be fine if it were consistent, 
 type Duration = f32;
 
 #[non_exhaustive]

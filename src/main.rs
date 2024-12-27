@@ -71,7 +71,14 @@ impl MainState
         enemy_walls.push(example_wall);
 
         let chunk: Chunk = Chunk::default();
-        let chunks = vec![chunk];
+        let mut chunk2 = chunk.clone();
+        chunk2.upper_left_position = [-16.0, 0.0].into();
+        let mut chunk3 = chunk.clone();
+        chunk3.upper_left_position = [-16.0, -16.0].into();
+        let mut chunk4 = chunk.clone();
+        chunk4.upper_left_position = [0.0, -16.0].into();
+
+        let chunks = vec![chunk, chunk2, chunk3, chunk4];
 
         let world_pos = [0.5, 0.5].into();
 

@@ -199,6 +199,8 @@ impl crate::Draw<Vec<Chunk>> for crate::MainState
                     _ => canvas.draw(&self.assets.basic_object, params),
                 };
             }
+
+            // Show boundary of chunk
         }
 
         Ok(())
