@@ -57,7 +57,7 @@ where
 
     pub fn tick(&mut self, dt: f32)
     {
-        println!("message: {:?}", *self);
+        // println!("message: {:?}", *self);
 
         use Message::*;
 

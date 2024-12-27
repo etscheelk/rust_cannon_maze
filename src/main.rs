@@ -36,6 +36,8 @@ struct MainState
     chunks: Vec<Chunk>,
 
     enemies: Vec<Enemy>,
+
+    gui: ggegui::Gui,
 }
 
 impl MainState
@@ -92,6 +94,8 @@ impl MainState
                 ((-0.75, -0.75), (0.75, 0.75)).into())
         ];
 
+        let gui = ggegui::Gui::new(&context);
+
         let s = MainState
         {
             input_state,
@@ -104,7 +108,8 @@ impl MainState
             enemy_walls,
             chunks,
             world_pos,
-            enemies
+            enemies,
+            gui,
         };
 
         Ok(s)
@@ -152,12 +157,58 @@ impl Draw<PeriscopeUniform> for MainState
     }
 }
 
+impl Update<ggegui::Gui> for MainState
+{
+    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
+    {
+        let gui_context = self.gui.ctx();
+
+        use ggegui::egui;
+        egui::Window::new("Dragging Window")
+        .show(&gui_context, 
+        |ui| {
+            ui.label("label");
+            if ui.button("button").clicked()
+            {
+                println!("button clicked");
+            }
+
+            ui.add_enabled(false, egui::Button::new("test"));
+        });
+        self.gui.update(context);
+
+        // egui::SidePanel::new(egui::panel::Side::Left, "left_panel")
+        // .show(&gui_context,
+        // |ui| {
+        //     ui.label("left panel");
+        // });
+
+        
+
+        
+
+        Ok(())    
+    }
+}
+
+impl Draw<ggegui::Gui> for MainState
+{
+    fn draw(&self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 
+    {
+        use ggez::graphics;
+
+        canvas.draw(&self.gui, graphics::DrawParam::default().dest([0.0, 0.0]));
+        
+        Ok(())
+    }
+}
+
 struct Assets
 {
     player_image:   ggez::graphics::Image,
     cannon_image:   ggez::graphics::Image,
     missile_image:  ggez::graphics::Image,
-    basic_object: ggez::graphics::Image,
+    basic_object:   ggez::graphics::Image,
 }
 
 impl Assets
@@ -192,7 +243,8 @@ impl ggez::event::EventHandler for MainState
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
         }
-
+        
+        Update::<ggegui::Gui>::update(self, context)?;
         Update::<PeriscopeUniform>::update(self, context)?;
 
         Ok(())
@@ -216,6 +268,8 @@ impl ggez::event::EventHandler for MainState
         Draw::<Vec<Chunk>>::draw(self, context, &mut canvas)?;
 
         Draw::<Vec<Enemy>>::draw(self, context, &mut canvas)?;
+
+        Draw::<ggegui::Gui>::draw(self, context, &mut canvas)?;
 
         // post effects
         // Draw::<PeriscopeUniform>::draw(self, context, &mut canvas)?;
