@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use ggez::{glam::Vec2, GameResult};
-use crate::game_object::cannon::RotateDir;
 
 #[derive(Default, Debug)]
 pub struct InputState
@@ -111,29 +110,6 @@ impl ggez::event::EventHandler for InputState
         _repeated: bool,
     ) -> GameResult
     {
-        
-        // use ggez::input::keyboard::KeyCode::*;
-
-        // // let ref mut input_state = self.input_state;
-        // let input_state = self;
-
-        // let mut apply_movement = Vec2::ZERO;
-        // if let Some(kc) = input.keycode
-        // {
-        //     match kc
-        //     {
-        //         Left    => input_state.cannon_rotate = Some(RotateDir::Left),
-        //         Right   => input_state.cannon_rotate = Some(RotateDir::Right),
-        //         W       => apply_movement.y -= 1.0,
-        //         S       => apply_movement.y += 1.0,
-        //         A       => apply_movement.x -= 1.0,
-        //         D       => apply_movement.x += 1.0, 
-        //         _       => ()
-        //     };
-        // };
-
-        // self.world_pos += apply_movement;
-
         let map = &self.input_map;
 
         if let Some(kc) = input.keycode

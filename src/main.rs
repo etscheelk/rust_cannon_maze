@@ -207,6 +207,25 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
+            // update world pos
+            let mut apply_movements = Vec2::ZERO;
+            self.input_state.camera_movements
+            .iter()
+            .for_each(|&ac|
+            {
+                use input::ActionCode::{CameraUp, CameraDown, CameraLeft, CameraRight};
+                match ac
+                {
+                    CameraUp => apply_movements.y -= 1.0,
+                    CameraDown => apply_movements.y += 1.0,
+                    CameraLeft => apply_movements.x -= 1.0,
+                    CameraRight => apply_movements.x += 1.0,
+                    _ => (),
+                };
+            });
+
+            self.world_pos += apply_movements;
+
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;

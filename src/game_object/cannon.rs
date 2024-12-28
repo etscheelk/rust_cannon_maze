@@ -40,7 +40,7 @@ impl Default for Cannon
 impl Cannon
 {
     const VELOCITY : f32 = 20.0;
-    const REFIRE_DELAY: f32 = 1.0; // FIXME: Express in ticks rather than float seconds for greater precision
+    const REFIRE_DELAY: f32 = 0.02; // FIXME: Express in ticks rather than float seconds for greater precision
     const BARREL_LENGTH: f32 = 3.0;
     
     /// constants relateed to rotation of cannon.
