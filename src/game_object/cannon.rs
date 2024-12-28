@@ -67,7 +67,7 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
         // Handle potential fire-action (if unblocked)
         // check that mouse is clicked & refire block is inactive
         let ref input_state = self.input_state;
-        if let Some(_) = input_state.left_click
+        if input_state.shoot
         {
             if let Message::Inactive = cannon.refire_block
             {
@@ -89,12 +89,13 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
             // Either left or right is being held
             Some(d) =>
             {
-                use RotateDir::*;
+                // use RotateDir::*;
+                use crate::input::ActionCode::TurnLeft;
 
                 // if the desired acceleration is in the opposite direction
                 // of movement, pick the maximum of ROT_ACC and ROT_DE_ACC to
                 // helpfully do the fastest turn
-                let sign = if d == Left { 1.0 } else { -1.0 };
+                let sign = if d == TurnLeft { 1.0 } else { -1.0 };
                 let mut acc = Cannon::ROT_ACC;
                 if cannon.rot_vel.signum() != sign
                 {

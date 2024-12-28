@@ -2,7 +2,7 @@ use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 // local imports
-use crate::{game_object::{HasPosition, HasRegion}, util::{hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, vec_extension::{Flip, RotateBy}}, MainState};
+use crate::{game_object::{HasPosition, HasRegion}, util::hash_map_tracker::{ForTracker, HashMapTracker, WithIndex}, MainState};
 
 use super::{collider_type::Collider, has_position, has_region, Region};
 

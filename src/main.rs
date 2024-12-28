@@ -1,13 +1,18 @@
+// local imports
+mod game_object;
+mod util;
+mod gui;
+mod input;
+
 use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, Region, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
+use gui::GUIState;
+use input::InputState;
 use serde::{Deserialize, Serialize};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
 use crate::game_object::HasRegion;
 
-// local imports
-mod game_object;
-mod util;
 
 use crate::game_object::{
     cannon::{Cannon, RotateDir}, 
@@ -37,6 +42,7 @@ struct MainState
 
     enemies: Vec<Enemy>,
 
+    gui_state: GUIState,
     gui: ggegui::Gui,
 }
 
@@ -94,6 +100,7 @@ impl MainState
                 ((-0.75, -0.75), (0.75, 0.75)).into())
         ];
 
+        let gui_state = GUIState::default();
         let gui = ggegui::Gui::new(&context);
 
         let s = MainState
@@ -109,18 +116,12 @@ impl MainState
             chunks,
             world_pos,
             enemies,
+            gui_state,
             gui,
         };
 
         Ok(s)
     }
-}
-
-#[derive(Default)]
-struct InputState
-{
-    left_click: Option<Vec2>,
-    cannon_rotate: Option<RotateDir>
 }
 
 impl Update<PeriscopeUniform> for MainState
@@ -157,39 +158,6 @@ impl Draw<PeriscopeUniform> for MainState
     }
 }
 
-impl Update<ggegui::Gui> for MainState
-{
-    fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
-    {
-        let gui_context = self.gui.ctx();
-
-        use ggegui::egui;
-        egui::Window::new("Dragging Window")
-        .show(&gui_context, 
-        |ui| {
-            ui.label("label");
-            if ui.button("button").clicked()
-            {
-                println!("button clicked");
-            }
-
-            ui.add_enabled(false, egui::Button::new("test"));
-        });
-        self.gui.update(context);
-
-        // egui::SidePanel::new(egui::panel::Side::Left, "left_panel")
-        // .show(&gui_context,
-        // |ui| {
-        //     ui.label("left panel");
-        // });
-
-        
-
-        
-
-        Ok(())    
-    }
-}
 
 impl Draw<ggegui::Gui> for MainState
 {
@@ -282,65 +250,21 @@ impl ggez::event::EventHandler for MainState
 
     fn key_down_event(
             &mut self,
-            _ctx: &mut ggez::Context,
+            context: &mut ggez::Context,
             input: ggez::input::keyboard::KeyInput,
-            _repeated: bool,
+            repeated: bool,
         ) -> ggez::GameResult 
     {
-        use ggez::input::keyboard::KeyCode::*;
-
-        let ref mut input_state = self.input_state;
-
-        let mut apply_movement = Vec2::ZERO;
-        if let Some(kc) = input.keycode
-        {
-            match kc
-            {
-                Left    => input_state.cannon_rotate = Some(RotateDir::Left),
-                Right   => input_state.cannon_rotate = Some(RotateDir::Right),
-                W       => apply_movement.y -= 1.0,
-                S       => apply_movement.y += 1.0,
-                A       => apply_movement.x -= 1.0,
-                D       => apply_movement.x += 1.0, 
-                _       => ()
-            };
-        };
-
-        self.world_pos += apply_movement;
-
-        if input.keycode == Some(Space)
-        {
-            let s = postcard::to_stdvec(HasRegion::<game_object::collider_type::Collider>::region_get(&self.enemies[0])).unwrap();
-            println!("enemy collider: {:?}", s);
-
-            let s = postcard::to_stdvec(HasRegion::<game_object::collider_type::Selection>::region_get(&self.enemies[0])).unwrap();
-            println!("enemy selection: {:?}", s);
-        }
-
-        Ok(())
+        self.input_state.key_down_event(context, input, repeated)
     }
 
     fn key_up_event(
         &mut self, 
-        _ctx: &mut ggez::Context, 
+        context: &mut ggez::Context, 
         input: ggez::input::keyboard::KeyInput
     ) -> ggez::GameResult 
     {
-        use ggez::input::keyboard::KeyCode::*;
-
-        let ref mut input_state = self.input_state;
-
-        if let Some(kc) = input.keycode
-        {
-            match kc
-            {
-                Left | 
-                Right   => input_state.cannon_rotate = None,
-                _       => ()
-            }
-        }
-
-        Ok(())    
+        self.input_state.key_up_event(context, input)  
     }
 
     fn mouse_button_down_event(
