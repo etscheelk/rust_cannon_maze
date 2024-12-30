@@ -120,7 +120,10 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
             // canvas.draw(&self.assets.missile_image, param);
             canvas.draw(&big_missile, param);
 
-            missile.region_get().draw(missile, self.world_pos, missile_screen_pos, context, canvas)?;
+            if self.debug_state.draw_hitboxes
+            {
+                missile.region_get().draw(missile, self.world_pos, missile_screen_pos, context, canvas)?;
+            }
         }
         
         Ok(())

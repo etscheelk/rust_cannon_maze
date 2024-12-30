@@ -7,7 +7,7 @@ mod input;
 use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, Region, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use gui::GUIState;
-use input::InputState;
+use input::{ComboToAction, KeyInputState};
 use serde::{Deserialize, Serialize};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
@@ -26,7 +26,6 @@ use crate::game_object::{
 struct MainState
 {
     screen: ggez::graphics::ScreenImage,
-    input_state: InputState,
     assets: Assets,
     
     periscope: PeriscopeUniform,
@@ -44,6 +43,16 @@ struct MainState
 
     gui_state: GUIState,
     gui: ggegui::Gui,
+
+    key_input_state: KeyInputState,
+
+    debug_state: DebugState,
+}
+
+#[derive(Default)]
+struct DebugState
+{
+    draw_hitboxes: bool
 }
 
 impl MainState
@@ -55,7 +64,6 @@ impl MainState
 
     fn new(context: &mut ggez::Context) -> ggez::GameResult<MainState>
     {
-        let input_state = InputState { ..std::default::Default::default() };
         let screen = 
             ggez::graphics::ScreenImage::new(
                 context, 
@@ -103,9 +111,12 @@ impl MainState
         let gui_state = GUIState::default();
         let gui = ggegui::Gui::new(&context);
 
+        let key_input_state = KeyInputState::default();
+
+        let debug_state = DebugState::default();
+
         let s = MainState
         {
-            input_state,
             screen,
             assets,
             periscope,
@@ -118,6 +129,10 @@ impl MainState
             enemies,
             gui_state,
             gui,
+
+            key_input_state,
+
+            debug_state,
         };
 
         Ok(s)
@@ -207,28 +222,46 @@ impl ggez::event::EventHandler for MainState
         // fixed-update
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
+            // if context.time.ticks() % 200 == 0
+            {
+                println!("{:?}", self.key_input_state.held_actions);
+            }
+
+            // check debug state
+            if self.key_input_state.held_actions.contains(&input::ActionCode::FlipDebugHitboxes)
+            {
+                self.debug_state.draw_hitboxes = !self.debug_state.draw_hitboxes;
+            }
+
             // update world pos
             let mut apply_movements = Vec2::ZERO;
-            self.input_state.camera_movements
-            .iter()
-            .for_each(|&ac|
             {
-                use input::ActionCode::{CameraUp, CameraDown, CameraLeft, CameraRight};
-                match ac
+                use input::ActionCode::*;
+                [CameraUp, CameraDown, CameraLeft, CameraRight]
+                .into_iter()
+                .for_each(|ac|
                 {
-                    CameraUp => apply_movements.y -= 1.0,
-                    CameraDown => apply_movements.y += 1.0,
-                    CameraLeft => apply_movements.x -= 1.0,
-                    CameraRight => apply_movements.x += 1.0,
-                    _ => (),
-                };
-            });
+                    if self.key_input_state.held_actions.contains(&ac)
+                    {
+                        match ac
+                        {
+                            CameraUp => apply_movements.y -= 1.0,
+                            CameraDown => apply_movements.y += 1.0,
+                            CameraLeft => apply_movements.x -= 1.0,
+                            CameraRight => apply_movements.x += 1.0,
+                            _ => (),
+                        };
+                    }
+                });
+            }
 
             self.world_pos += apply_movements;
 
             FixedUpdate::<Cannon>::fixed_update(self, context)?;
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
+
+            self.key_input_state.held_actions.clear();
         }
         
         Update::<ggegui::Gui>::update(self, context)?;
@@ -274,7 +307,10 @@ impl ggez::event::EventHandler for MainState
             repeated: bool,
         ) -> ggez::GameResult 
     {
-        self.input_state.key_down_event(context, input, repeated)
+        // println!("{:?}", input);
+
+        // self.input_state.key_down_event(context, input, repeated)
+        self.key_input_state.key_down_event(context, input, repeated)
     }
 
     fn key_up_event(
@@ -283,49 +319,32 @@ impl ggez::event::EventHandler for MainState
         input: ggez::input::keyboard::KeyInput
     ) -> ggez::GameResult 
     {
-        self.input_state.key_up_event(context, input)  
+        // println!("\tkey up: {:?}", input);
+
+        // self.input_state.key_up_event(context, input)  
+        self.key_input_state.key_up_event(context, input)
     }
 
     fn mouse_button_down_event(
             &mut self,
-            _ctx: &mut ggez::Context,
+            context: &mut ggez::Context,
             button: ggez::event::MouseButton,
             x: f32,
             y: f32,
         ) -> ggez::GameResult 
-    {
-        use ggez::event::MouseButton::*;
-
-        let ref mut input_state = self.input_state;
-
-        match button
-        {
-            Left    => input_state.left_click = Some([x, y].into()),
-            _       => (),
-        };
-        
-        Ok(())
+    {   
+        self.key_input_state.mouse_button_down_event(context, button, x, y)
     }
 
     fn mouse_button_up_event(
             &mut self,
-            _ctx: &mut ggez::Context,
+            context: &mut ggez::Context,
             button: ggez::event::MouseButton,
-            _x: f32,
-            _y: f32,
+            x: f32,
+            y: f32,
         ) -> ggez::GameResult
     {
-        use ggez::event::MouseButton::*;
-
-        let ref mut input_state = self.input_state;
-        
-        match button
-        {
-            Left    => input_state.left_click = None,
-            _       => (),
-        }
-
-        Ok(())
+        self.key_input_state.mouse_button_up_event(context, button, x, y)
     }
 }
 

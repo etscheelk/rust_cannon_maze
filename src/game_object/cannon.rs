@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::{game_object::HasPosition, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
+use crate::{game_object::HasPosition, input::ActionCode, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
 use super::{has_position, missile::Missile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,8 +66,7 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
 
         // Handle potential fire-action (if unblocked)
         // check that mouse is clicked & refire block is inactive
-        let ref input_state = self.input_state;
-        if input_state.shoot
+        if self.key_input_state.held_actions.contains(&ActionCode::Shoot)
         {
             if let Message::Inactive = cannon.refire_block
             {
@@ -84,40 +83,67 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
         }
 
         let mut new_rot_vel: f32 = 0.0;
-        match self.input_state.cannon_rotate
+        // match self.input_state.cannon_rotate
+        let left_turn = self.key_input_state.held_actions.contains(&ActionCode::TurnLeft);
+        let right_turn = self.key_input_state.held_actions.contains(&ActionCode::TurnRight);
+        // println!("{left_turn}_{right_turn}");
+        if left_turn || right_turn
         {
-            // Either left or right is being held
-            Some(d) =>
+            // if the desired acceleration is in the opposite direction
+            // of movement, pick the maximum of ROT_ACC and ROT_DE_ACC to
+            // helpfully do the fastest turn
+            let sign = if left_turn { 1.0 } else { -1.0 };
+            let mut acc = Cannon::ROT_ACC;
+            if cannon.rot_vel.signum() != sign
             {
-                // use RotateDir::*;
-                use crate::input::ActionCode::TurnLeft;
+                acc = f32::max(Cannon::ROT_ACC, Cannon::ROT_DE_ACC);
+            }
+            acc *= sign;
 
-                // if the desired acceleration is in the opposite direction
-                // of movement, pick the maximum of ROT_ACC and ROT_DE_ACC to
-                // helpfully do the fastest turn
-                let sign = if d == TurnLeft { 1.0 } else { -1.0 };
-                let mut acc = Cannon::ROT_ACC;
-                if cannon.rot_vel.signum() != sign
-                {
-                    acc = f32::max(Cannon::ROT_ACC, Cannon::ROT_DE_ACC);
-                }
-                acc *= sign;
-
-                new_rot_vel = cannon.rot_vel + acc * MainState::FIXED_PHYSICS_TIMESTEP;
-                new_rot_vel = new_rot_vel.clamp(-Cannon::MAX_ROT_PER_SEC, Cannon::MAX_ROT_PER_SEC);
-            },
-            // button not held at this time. 
-            // Apply damping force in the opposite direction
-            None =>
+            new_rot_vel = cannon.rot_vel + acc * MainState::FIXED_PHYSICS_TIMESTEP;
+            new_rot_vel = new_rot_vel.clamp(-Cannon::MAX_ROT_PER_SEC, Cannon::MAX_ROT_PER_SEC);
+        }
+        else
+        {
+            if cannon.rot_vel.abs() > 0.0
             {
-                if cannon.rot_vel.abs() > 0.0
-                {
-                    let sign = cannon.rot_vel.signum();
-                    new_rot_vel = cannon.rot_vel - sign * Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
-                    if new_rot_vel.signum() != sign { new_rot_vel = 0.0; }
-                }
-            },
-        };
+                let sign = cannon.rot_vel.signum();
+                new_rot_vel = cannon.rot_vel - sign * Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
+                if new_rot_vel.signum() != sign { new_rot_vel = 0.0; }
+            }
+        }
+        // match (left_turn, right_turn)
+        // {
+        //     // Either left or right is being held
+        //     (true, _) | (_, true) =>
+        //     {
+
+        //         // if the desired acceleration is in the opposite direction
+        //         // of movement, pick the maximum of ROT_ACC and ROT_DE_ACC to
+        //         // helpfully do the fastest turn
+        //         let sign = if left_turn { 1.0 } else { -1.0 };
+        //         let mut acc = Cannon::ROT_ACC;
+        //         if cannon.rot_vel.signum() != sign
+        //         {
+        //             acc = f32::max(Cannon::ROT_ACC, Cannon::ROT_DE_ACC);
+        //         }
+        //         acc *= sign;
+
+        //         new_rot_vel = cannon.rot_vel + acc * MainState::FIXED_PHYSICS_TIMESTEP;
+        //         new_rot_vel = new_rot_vel.clamp(-Cannon::MAX_ROT_PER_SEC, Cannon::MAX_ROT_PER_SEC);
+        //     },
+        //     // button not held at this time. 
+        //     // Apply damping force in the opposite direction
+        //     (false, false) =>
+        //     {
+        //         if cannon.rot_vel.abs() > 0.0
+        //         {
+        //             let sign = cannon.rot_vel.signum();
+        //             new_rot_vel = cannon.rot_vel - sign * Cannon::ROT_DE_ACC * MainState::FIXED_PHYSICS_TIMESTEP;
+        //             if new_rot_vel.signum() != sign { new_rot_vel = 0.0; }
+        //         }
+        //     },
+        // };
 
         cannon.rot_vel = new_rot_vel;
         cannon.facing = cannon.facing.rotate_by(cannon.rot_vel * MainState::FIXED_PHYSICS_TIMESTEP);

@@ -5,6 +5,8 @@ use ggez::glam::Vec2;
 use serde::{Serialize, Deserialize};
 use serde_with::serde_as;
 
+use crate::input::ActionCode;
+
 #[derive(Debug, Clone, Default, Copy, Serialize, Deserialize)]
 pub struct Object
 {
@@ -133,8 +135,10 @@ impl crate::FixedUpdate<Vec<Chunk>> for crate::MainState
         let ref mut chunks = self.chunks;
 
         // get mouse click location and map it to a cell and fill it if possible
-        if let Some(mut pos) = self.input_state.left_click
+        // if let Some(mut pos) = self.input_state.left_click
+        if self.key_input_state.held_actions.contains(&ActionCode::Click)
         {
+            let mut pos: Vec2 = context.mouse.position().into();
             // let mut pos: Vec2 = context.mouse.position().into();
             // map mouse click to somewhere in world coordinate space
             pos = pos / 16.0 + self.world_pos;
