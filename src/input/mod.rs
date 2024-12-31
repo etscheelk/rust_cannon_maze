@@ -1,22 +1,114 @@
 use std::collections::{HashMap, HashSet};
-use ggez::{glam::Vec2, GameResult};
+use ggez::GameResult;
+
+use ggez::input::keyboard::KeyMods;
 
 #[derive(Debug, Clone, Default)]
 pub struct KeyInputState
 {
-    pressed_keys:           HashSet<ggez::input::keyboard::KeyCode>,
-    pressed_mouse:          HashSet<ggez::input::mouse::MouseButton>,
-    modifiers:              ggez::input::keyboard::KeyMods,
+    pub pressed_buttons:    HashSet<Button>,
+    // pub pressed_mods:       HashSet<Button>, // contains only mods
+    pub pressed_mods:       KeyMods,
+
+    // blocked_buttons:        HashSet<Button>,
+    // blocked_mods:           HashSet<Button>, // contains only mods
+    blocked_mods:           KeyMods,
+
     alt_only_pending:       bool,
     shift_only_pending:     bool,
     control_only_pending:   bool,
     logo_only_pending:      bool,
 
-    // mouse_position_curr:    Option<Vec2>,
-    // mouse_position_prev:    Option<Vec2>,
-
     key_combos:             ComboToAction,
-    pub held_actions:       HashSet<ActionCode>
+    pub held_actions:       HashSet<ActionCode>,
+}
+
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub enum Mod
+// {
+//     LShift,
+//     RShift,
+//     LAlt,
+//     RAlt,
+//     RControl,
+//     LControl,
+// }
+
+/// Block keys when pressed, or a combo is pressed. 
+/// For instance, if I have a combo ALT + D, if I let go of ALT, nothing 
+/// should happen that is bound to D until ALL the keys in the combo are released
+/// 
+/// This will also block if I am holding D and starting holding ALT. But anything 
+/// bound to ALT will work, or another combo like ALT + C.
+/// 
+/// If a keycombo results in an action, then we add those
+/// keys to some set, and no other action using those keys can be created until
+/// all those keys have been released. 
+/// 
+/// 
+
+impl crate::FixedUpdate<Self> for KeyInputState
+{
+    fn fixed_update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
+    {
+        // read set of pressed keys and detect if key combo, block if necessary
+        
+
+
+        
+
+        for kc in self.key_combos.keys()
+        {
+            // check if there are any held actions whose
+            // combos are not being held right now
+            for &ac in &self.key_combos[kc]
+            {
+                if self.held_actions.contains(&ac)
+                {
+                    if !self.pressed_buttons.contains(&kc.1) && !self.blocked_mods.contains(kc.0)
+                    {
+                        self.held_actions.remove(&ac);
+                    }
+                }
+            }
+
+            let is_blocked_combo = 
+            {
+                // let button_not_blocked: bool = !self.blocked_buttons.contains(b);
+                let button_not_blocked: bool = !self.pressed_buttons.contains(&kc.1);
+                
+                // if the currently-blocked modifiers contain ANY of this combo's mods, 
+                // this combo is blocked
+                // let mod_not_blocked: bool = (self.blocked_mods & *m) == KeyMods::NONE;
+                let mod_not_blocked: bool = !self.blocked_mods.contains(kc.0);
+
+                button_not_blocked & mod_not_blocked
+            };
+
+            if is_blocked_combo { continue }
+
+            // current mods held are a superset of this combo's mods
+            // let is_superset = (self.pressed_mods | *m) == self.modifiers;
+            let is_superset = self.pressed_mods.contains(kc.0);
+
+            // check that pressed buttons contains button
+            if self.pressed_buttons.contains(&kc.1) && is_superset 
+            {
+                // we now know that this set of pressed keys contains this key combo.
+                // we now block the keys and add its actions
+
+                for &ac in &self.key_combos[&kc]
+                {
+                    self.held_actions.insert(ac);
+                }
+
+                // self.blocked_buttons.insert(*b);
+                self.blocked_mods.insert(kc.0);
+            }
+        }
+
+        Ok(())    
+    }
 }
 
 impl ggez::event::EventHandler for KeyInputState
@@ -40,29 +132,15 @@ impl ggez::event::EventHandler for KeyInputState
     {
         let key = input.keycode.expect("Keycode in key-down will always be something");
 
-        self.pressed_keys.insert(key);
-        self.modifiers = input.mods;
-
-        use ggez::input::keyboard::KeyCode::*;
+        use ggez::input::keyboard::{KeyCode::*, KeyMods};
         match key
         {
-            LAlt | RAlt =>          self.alt_only_pending       = true,
-            RShift | LShift =>      self.shift_only_pending     = true,
-            RControl | LControl =>  self.control_only_pending   = true,
-            _ => (),
+            LAlt | RAlt         => { self.pressed_mods.insert(KeyMods::ALT); },
+            LShift | RShift     => { self.pressed_mods.insert(KeyMods::SHIFT); },
+            LControl | RControl => { self.pressed_mods.insert(KeyMods::CTRL); },
+            _                   => (),
         };
-
-        let key_combo: KeyCombo = (self.modifiers, key).into();
-        if let Some(v) = self.key_combos.get(&key_combo)
-        {
-            for &ac in v
-            {
-                self.held_actions.insert(ac);
-                self.alt_only_pending = false;
-                self.shift_only_pending = false;
-                self.control_only_pending = false;
-            }
-        }
+        self.pressed_buttons.insert(key.into());
         
         Ok(())
     }
@@ -75,34 +153,15 @@ impl ggez::event::EventHandler for KeyInputState
     {
         let key = input.keycode.expect("Keycode in key-up will always be something");
 
-        self.pressed_keys.remove(&key);
-        self.modifiers = input.mods;
-
-        use ggez::input::keyboard::KeyCode::*;
+        use ggez::input::keyboard::{KeyCode::*, KeyMods};
         match key
         {
-            LAlt | RAlt if self.alt_only_pending =>
-            {
-                let key_combo: KeyCombo = (self.modifiers, LAlt).into();
-                if let Some(v) = self.key_combos.get(&key_combo)
-                {
-                    for &ac in v
-                    {
-                        self.held_actions.insert(ac);   
-                        self.alt_only_pending = false;
-                    }
-                }
-            },
-            // LShift | RShift if self.shift_only_pending =>
-            // {
-
-            // },
-            // LControl | RControl if self.control_only_pending =>
-            // {
-
-            // },
-            _ => (),
-        }
+            LAlt | RAlt         => { self.pressed_mods.remove(KeyMods::ALT); self.blocked_mods.remove(KeyMods::ALT); },
+            LShift | RShift     => { self.pressed_mods.remove(KeyMods::SHIFT); self.blocked_mods.remove(KeyMods::SHIFT); },
+            LControl | RControl => { self.pressed_mods.remove(KeyMods::CTRL); self.blocked_mods.remove(KeyMods::CTRL); },
+            _                   => { self.pressed_buttons.remove(&key.into()); },
+        };
+        self.pressed_buttons.remove(&key.into());
         
         Ok(())    
     }
@@ -115,19 +174,7 @@ impl ggez::event::EventHandler for KeyInputState
         _y: f32,
     ) -> GameResult
     {
-        self.pressed_mouse.insert(button);
-
-        let key_combo: KeyCombo = (self.modifiers, button).into();
-        if let Some(v) = self.key_combos.get(&key_combo)
-        {
-            for &ac in v
-            {
-                self.held_actions.insert(ac);
-                self.alt_only_pending = false;
-                self.shift_only_pending = false;
-                self.control_only_pending = false;
-            }
-        }
+        self.pressed_buttons.insert(button.into());
         
         Ok(())
     }
@@ -140,7 +187,7 @@ impl ggez::event::EventHandler for KeyInputState
             _y: f32,
     ) -> GameResult
     {
-        self.pressed_mouse.remove(&button);
+        self.pressed_buttons.remove(&button.into());
         
         Ok(())
     }
@@ -162,10 +209,11 @@ pub enum ActionCode
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-enum Button
+pub enum Button
 {
     Mouse(ggez::input::mouse::MouseButton),
     Keyboard(ggez::input::keyboard::KeyCode),
+    None,
 }
 
 impl From<ggez::input::mouse::MouseButton> for Button
@@ -185,7 +233,7 @@ impl From<ggez::input::keyboard::KeyCode> for Button
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct KeyCombo(ggez::input::keyboard::KeyMods, Button);
+pub struct KeyCombo(KeyMods, Button);
 
 impl<B> From<(ggez::input::keyboard::KeyMods, B)> for KeyCombo
 where
@@ -234,7 +282,7 @@ impl Default for ComboToAction
                 ((KeyMods::NONE, KeyCode::W).into(), vec![ActionCode::CameraUp]),
                 ((KeyMods::NONE, KeyCode::S).into(), vec![ActionCode::CameraDown]),
                 ((KeyMods::NONE, KeyCode::A).into(), vec![ActionCode::CameraLeft]),
-                ((KeyMods::NONE, KeyCode::D).into(), vec![ActionCode::CameraRight, ActionCode::Shoot]),
+                ((KeyMods::NONE, KeyCode::D).into(), vec![ActionCode::CameraRight]),
 
                 ((KeyMods::NONE, MouseButton::Left).into(), vec![ActionCode::Click]),
 

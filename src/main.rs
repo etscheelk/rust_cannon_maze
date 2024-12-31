@@ -216,15 +216,27 @@ impl Assets
     }
 }
 
+
+
 impl ggez::event::EventHandler for MainState
 {
     fn update(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
         // fixed-update
+
+        // if context.time.ticks() % 120 == 0
+        {
+            println!{"{:?}", context.time.fps()};
+        }
+
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
+            FixedUpdate::<KeyInputState>::fixed_update(&mut self.key_input_state, context)?;
+
+            // println!("{:?}", self.key_input_state.held_actions);
             // if context.time.ticks() % 200 == 0
             {
-                println!("{:?}", self.key_input_state.held_actions);
+                // println!("{:?}", self.key_input_state.held_actions);
+                // println!("{:?}", self.key_input_state.pressed_buttons);
             }
 
             // check debug state

@@ -57,8 +57,10 @@ impl crate::Draw<Vec<Enemy>> for crate::MainState
             
             canvas.draw(&img, params);
 
-
-            HasRegion::<Collider>::region_get(enemy).draw(enemy, self.world_pos, screen_pos, context, canvas)?;
+            if self.debug_state.draw_hitboxes
+            {
+                HasRegion::<Collider>::region_get(enemy).draw(enemy, self.world_pos, screen_pos, context, canvas)?;
+            }
         }
         
         Ok(())    
