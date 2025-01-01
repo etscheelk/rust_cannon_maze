@@ -13,7 +13,7 @@ pub struct EnemyWall
     center_position: Vec2,
     rect: graphics::Rect,
     transform: graphics::Transform,
-    index: u16
+    index: u32
 }
 
 impl EnemyWall
@@ -40,7 +40,7 @@ impl EnemyWall
 impl ForTracker for EnemyWall {}
 impl WithIndex for EnemyWall
 {
-    fn with_index(mut self, index: u16) -> Self 
+    fn with_index(mut self, index: u32) -> Self 
     {
         self.index = index;
         self

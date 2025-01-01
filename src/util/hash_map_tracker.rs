@@ -9,23 +9,26 @@ use std::{collections::HashMap, ops::{Deref, DerefMut}};
 /// 
 /// User can push items that the tracker places in itself as an owner, 
 /// giving them a circular unique ID of the element.
-#[derive(Debug, Clone)]
-pub struct HashMapTracker<I, const MAX: u16 = 1024>
+#[derive(Debug)]
+pub struct HashMapTracker<I, const MAX: u32 = 1024>
 {
-    cur_index: u16,
-    tracker: HashMap<u16, I>
+    cur_index: u32,
+    tracker: HashMap<u32, I>,
+    pub instances: Option<ggez::graphics::InstanceArray>,
 }
 
-impl<I, const MAX: u16> Deref for HashMapTracker<I, MAX>
+
+
+impl<I, const MAX: u32> Deref for HashMapTracker<I, MAX>
 {
-    type Target = HashMap<u16, I>;
+    type Target = HashMap<u32, I>;
 
     fn deref(&self) -> &Self::Target {
         &self.tracker
     }
 }
 
-impl<I, const MAX: u16> DerefMut for HashMapTracker<I, MAX>
+impl<I, const MAX: u32> DerefMut for HashMapTracker<I, MAX>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.tracker
@@ -44,10 +47,10 @@ pub trait ForTracker: WithIndex {}
 /// A trait imposing a requirement that an object has a consuming function which sets a particular ID on the object
 pub trait WithIndex
 {
-    fn with_index(self, index: u16) -> Self;
+    fn with_index(self, index: u32) -> Self;
 }
 
-impl<I, const MAX: u16> HashMapTracker<I, MAX>
+impl<I, const MAX: u32> HashMapTracker<I, MAX>
 where
     I: ForTracker
 {
@@ -57,7 +60,13 @@ where
         {
             cur_index: 0,
             tracker: HashMap::new(),
+            instances: None,
         }
+    }
+
+    pub fn set_instance_array(&mut self, ia: ggez::graphics::InstanceArray)
+    {
+        self.instances = Some(ia);
     }
 
     /// Add an item `I` into the tracker, consuming it.
@@ -75,7 +84,7 @@ where
         {
             let ind = self.cur_index;
             self.tracker.insert(ind, i.with_index(ind));
-            self.cur_index = (ind + 1) % MAX;
+            self.cur_index = ind + 1; // could cause overflow if I have 4 Billion objects over time
 
             Status::Success
         }
@@ -92,7 +101,7 @@ where
     }
 
     // Should basically always return Success. 
-    pub fn delete(&mut self, index: u16) -> Status
+    pub fn delete(&mut self, index: u32) -> Status
     {   
         match self.tracker.remove(&index)
         {

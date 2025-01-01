@@ -4,7 +4,7 @@ mod util;
 mod gui;
 mod input;
 
-use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, Region, HasPosition};
+use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, DrawMut, HasPosition, Region};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use gui::GUIState;
 use input::{ComboToAction, KeyInputState};
@@ -76,7 +76,8 @@ impl MainState
         let periscope_shader = 
             ggez::graphics::ShaderBuilder::new().fragment_path("/periscope.wgsl").build(context)?;
         let cannon = Cannon::default();
-        let missiles = HashMapTracker::new();
+        let mut missiles = HashMapTracker::new();
+        missiles.set_instance_array(ggez::graphics::InstanceArray::new(context, assets.missile_image.clone()));
         let mut enemy_walls = HashMapTracker::new();
 
         let example_wall = 
@@ -201,8 +202,8 @@ impl Assets
         use ggez::graphics::Image;
         let player_image    = Image::from_path(context, "/dogRight0.png")?;
         let cannon_image    = Image::from_path(context, "/cannon.png")?;
-        let missile_image   = Image::from_path(context, "/missile.png")?;
-        let basic_object = Image::from_path(context, "/Object.png")?;
+        let missile_image   = Image::from_path(context, "/missile_big.png")?;
+        let basic_object    = Image::from_path(context, "/Object.png")?;
         
         Ok(
             Assets 
@@ -224,7 +225,8 @@ impl ggez::event::EventHandler for MainState
         {
             // if context.time.ticks() % 200 == 0
             {
-                println!("{:?}", self.key_input_state.held_actions);
+                // println!("{:?}", self.key_input_state.held_actions);
+                println!("{:?}", context.time.fps());
             }
 
             // check debug state
@@ -281,7 +283,8 @@ impl ggez::event::EventHandler for MainState
         canvas.set_sampler(graphics::Sampler::nearest_clamp());
 
         Draw::<Cannon>::draw(self, context, &mut canvas)?;
-        Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
+        // Draw::<HashMapTracker<Missile>>::draw(self, context, &mut canvas)?;
+        DrawMut::<HashMapTracker<Missile>>::draw_mut(self, context, &mut canvas)?;
 
         Draw::<HashMapTracker<EnemyWall>>::draw(self, context, &mut canvas)?;
 

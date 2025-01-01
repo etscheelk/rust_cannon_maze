@@ -15,7 +15,7 @@ pub struct Missile
     vel: Vec2,
     collision_region: Region<Collider>,
 
-    index: Option<u16>,
+    index: Option<u32>,
 }
 
 has_position!(Missile);
@@ -38,7 +38,7 @@ impl Missile
 impl ForTracker for Missile {}
 impl WithIndex for Missile
 {
-    fn with_index(mut self, index: u16) -> Self 
+    fn with_index(mut self, index: u32) -> Self 
     {
         self.index = Some(index);
         self
@@ -74,13 +74,71 @@ impl crate::FixedUpdate<HashMapTracker<Missile>> for crate::MainState
             }
         })
         .flatten()
-        .collect::<Vec<u16>>()
+        .collect::<Vec<u32>>()
         .iter()
         .for_each(
-        |&ind|
+        |&index|
         {
-            missiles.delete(ind);
+            missiles.delete(index);
         });
+
+        Ok(())
+    }
+}
+
+impl crate::game_object::DrawMut<HashMapTracker<Missile>> for crate::MainState
+{
+    fn draw_mut(&mut self, context: &mut ggez::Context, canvas: &mut ggez::graphics::Canvas) -> ggez::GameResult 
+    {
+        let missiles = &mut self.missiles;
+        
+        use ggez::graphics;
+
+        let screen_coords = canvas.screen_coordinates().unwrap();
+
+        // TODO: Update to use instanced array
+        // for fast drawing
+        let draw_params = 
+        missiles
+        .iter_mut()
+        .map(|(_ind, missile)| -> Option<ggez::graphics::Transform> 
+        {
+            let missile_screen_pos = 16.0 * (missile.position_get() - self.world_pos);
+            if !screen_coords.contains(missile_screen_pos) 
+            { 
+                return None;
+            }
+            
+            let rotation = -missile.vel.angle_between(Vec2::X);
+
+            let transform = 
+                graphics::Transform::Values 
+                { 
+                    dest: missile_screen_pos.into(), 
+                    rotation: rotation, 
+                    scale: [1.0, 1.0].into(), 
+                    offset: [0.0, 0.0].into() 
+                };
+
+            return Some(transform);
+        })
+        .flatten()
+        .map(|t|
+        {
+            let param = 
+                graphics::DrawParam::new()
+                .transform(t.to_bare_matrix());
+
+            param
+        }).collect::<Vec<graphics::DrawParam>>();
+
+        // missiles.instances.set(draw_params);
+        // ia.set(draw_params);
+        if let Some(ia) = missiles.instances.as_mut()
+        {
+            ia.set(draw_params);
+            canvas.draw(ia, graphics::DrawParam::default());
+        }
 
         Ok(())
     }
@@ -93,11 +151,17 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
         
         use ggez::graphics;
 
-        // TODO: Update to use instanced array
-        // for fast drawing
+        let screen_coords = canvas.screen_coordinates().unwrap();
+
+
         for (_, missile) in missiles.get_tracker()
         {
             let missile_screen_pos = 16.0 * (missile.position_get() - self.world_pos);
+
+            // if let Some(r) = canvas.screen_coordinates()
+            // {
+            //     if !r.contains(missile_screen_pos) { continue }
+            // }
 
             let rotation = -missile.vel.angle_between(Vec2::X);
 
@@ -112,13 +176,14 @@ impl crate::Draw<HashMapTracker<Missile>> for crate::MainState
                 offset: [0.0, 8.0].into(), // offset by half the asset's height
             };
 
-            let big_missile = graphics::Image::from_path(context, "/missile_big.png")?;
+            // let big_missile = graphics::Image::from_path(context, "/missile_big.png")?;
+            let big_missile = &self.assets.missile_image;
 
             let param = 
                 graphics::DrawParam::new()
                 .transform(transform.to_bare_matrix());
             // canvas.draw(&self.assets.missile_image, param);
-            canvas.draw(&big_missile, param);
+            canvas.draw(big_missile, param);
 
             if self.debug_state.draw_hitboxes
             {
