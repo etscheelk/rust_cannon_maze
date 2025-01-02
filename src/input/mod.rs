@@ -7,12 +7,11 @@ use ggez::input::keyboard::KeyMods;
 pub struct KeyInputState
 {
     pub pressed_buttons:    HashSet<Button>,
-    // pub pressed_mods:       HashSet<Button>, // contains only mods
     pub pressed_mods:       KeyMods,
 
     // blocked_buttons:        HashSet<Button>,
     // blocked_mods:           HashSet<Button>, // contains only mods
-    blocked_mods:           KeyMods,
+    // blocked_mods:           KeyMods,
 
     alt_only_pending:       bool,
     shift_only_pending:     bool,
@@ -52,23 +51,46 @@ impl crate::FixedUpdate<Self> for KeyInputState
     fn fixed_update(&mut self, context: &mut ggez::Context) -> ggez::GameResult 
     {
         // read set of pressed keys and detect if key combo, block if necessary
-        
-
-
-        
-
         for kc in self.key_combos.keys()
         {
             // check if there are any held actions whose
             // combos are not being held right now
-            for &ac in &self.key_combos[kc]
+
+            // println!("pressed buttons: {:?}", &self.pressed_buttons);
+            // println!("blocked mods {:?}\n", self.blocked_mods);
+            for ac in &self.key_combos[kc]
             {
-                if self.held_actions.contains(&ac)
+                if self.held_actions.contains(ac)
                 {
-                    if !self.pressed_buttons.contains(&kc.1) && !self.blocked_mods.contains(kc.0)
+                    let mods_gone_or_none = self.pressed_mods == KeyMods::NONE || !self.pressed_mods.contains(kc.0);
+                    let button_not_being_held = !self.pressed_buttons.contains(&kc.1);
+
+                    if button_not_being_held && mods_gone_or_none
                     {
-                        self.held_actions.remove(&ac);
+                        self.held_actions.remove(ac);
+                        println!("action removed: {:?}", ac);
                     }
+                    
+
+                    // if self.pressed_mods == KeyMods::NONE
+                    // {
+                    //     if !self.pressed_buttons.contains(&kc.1)
+                    //     {
+                    //         self.held_actions.remove(ac);
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     if !self.pressed_buttons.contains(&kc.1) && !self.pressed_mods.contains(kc.0)
+                    //     {
+                    //         self.held_actions.remove(ac);
+                    //     }
+                    // }
+                    // if !self.pressed_buttons.contains(&kc.1) && !self.pressed_mods.contains(kc.0)
+                    // {
+                    //     self.held_actions.remove(ac);
+                    //     // println!("removed action {:?}", ac);
+                    // }
                 }
             }
 
@@ -80,7 +102,7 @@ impl crate::FixedUpdate<Self> for KeyInputState
                 // if the currently-blocked modifiers contain ANY of this combo's mods, 
                 // this combo is blocked
                 // let mod_not_blocked: bool = (self.blocked_mods & *m) == KeyMods::NONE;
-                let mod_not_blocked: bool = !self.blocked_mods.contains(kc.0);
+                let mod_not_blocked: bool = !self.pressed_mods.contains(kc.0);
 
                 button_not_blocked & mod_not_blocked
             };
@@ -103,7 +125,7 @@ impl crate::FixedUpdate<Self> for KeyInputState
                 }
 
                 // self.blocked_buttons.insert(*b);
-                self.blocked_mods.insert(kc.0);
+                self.pressed_mods.insert(kc.0);
             }
         }
 
@@ -156,9 +178,9 @@ impl ggez::event::EventHandler for KeyInputState
         use ggez::input::keyboard::{KeyCode::*, KeyMods};
         match key
         {
-            LAlt | RAlt         => { self.pressed_mods.remove(KeyMods::ALT); self.blocked_mods.remove(KeyMods::ALT); },
-            LShift | RShift     => { self.pressed_mods.remove(KeyMods::SHIFT); self.blocked_mods.remove(KeyMods::SHIFT); },
-            LControl | RControl => { self.pressed_mods.remove(KeyMods::CTRL); self.blocked_mods.remove(KeyMods::CTRL); },
+            LAlt | RAlt         => { self.pressed_mods.remove(KeyMods::ALT); },
+            LShift | RShift     => { self.pressed_mods.remove(KeyMods::SHIFT); },
+            LControl | RControl => { self.pressed_mods.remove(KeyMods::CTRL); },
             _                   => { self.pressed_buttons.remove(&key.into()); },
         };
         self.pressed_buttons.remove(&key.into());

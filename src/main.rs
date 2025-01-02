@@ -225,12 +225,13 @@ impl ggez::event::EventHandler for MainState
 
         // if context.time.ticks() % 120 == 0
         {
-            println!{"{:?}", context.time.fps()};
+            // println!{"{:?}", context.time.fps()};
         }
 
         while context.time.check_update_time(MainState::FIXED_PHYSICS_FRAMERATE)
         {
-            FixedUpdate::<KeyInputState>::fixed_update(&mut self.key_input_state, context)?;
+            // FixedUpdate::<KeyInputState>::fixed_update(&mut self.key_input_state, context)?;
+            self.key_input_state.fixed_update(context)?;
 
             // println!("{:?}", self.key_input_state.held_actions);
             // if context.time.ticks() % 200 == 0
@@ -273,7 +274,7 @@ impl ggez::event::EventHandler for MainState
             FixedUpdate::<Vec<Chunk>>::fixed_update(self, context)?;
             FixedUpdate::<HashMapTracker<Missile>>::fixed_update(self, context)?;
 
-            self.key_input_state.held_actions.clear();
+            // self.key_input_state.held_actions.clear();
         }
         
         Update::<ggegui::Gui>::update(self, context)?;
