@@ -5,7 +5,7 @@ use ggez::glam::Vec2;
 use serde::{Serialize, Deserialize};
 use serde_with::serde_as;
 
-use crate::input::ActionCode;
+use crate::input::{ActionCode, HoldActionCode};
 
 #[derive(Debug, Clone, Default, Copy, Serialize, Deserialize)]
 pub struct Object
@@ -136,7 +136,7 @@ impl crate::FixedUpdate<Vec<Chunk>> for crate::MainState
 
         // get mouse click location and map it to a cell and fill it if possible
         // if let Some(mut pos) = self.input_state.left_click
-        if self.key_input_state.held_actions.contains(&ActionCode::Click)
+        if self.key_input_state.held_actions.contains(&HoldActionCode::Shoot.into())
         {
             let mut pos: Vec2 = context.mouse.position().into();
             // let mut pos: Vec2 = context.mouse.position().into();

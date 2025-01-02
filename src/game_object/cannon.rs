@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use ggez::glam::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::{game_object::HasPosition, input::ActionCode, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
+use crate::{game_object::HasPosition, input::{ActionCode, HoldActionCode}, util::{message::Message, vec_extension::{Flip, RotateBy}}, MainState};
 use super::{has_position, missile::Missile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +66,7 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
 
         // Handle potential fire-action (if unblocked)
         // check that mouse is clicked & refire block is inactive
-        if self.key_input_state.held_actions.contains(&ActionCode::Shoot)
+        if self.key_input_state.held_actions.contains(&HoldActionCode::Shoot.into())
         {
             if let Message::Inactive = cannon.refire_block
             {
@@ -84,8 +84,8 @@ impl crate::FixedUpdate<Cannon> for crate::MainState
 
         let mut new_rot_vel: f32 = 0.0;
         // match self.input_state.cannon_rotate
-        let left_turn = self.key_input_state.held_actions.contains(&ActionCode::TurnLeft);
-        let right_turn = self.key_input_state.held_actions.contains(&ActionCode::TurnRight);
+        let left_turn = self.key_input_state.held_actions.contains(&HoldActionCode::TurnLeft.into());
+        let right_turn = self.key_input_state.held_actions.contains(&HoldActionCode::TurnRight.into());
         // println!("{left_turn}_{right_turn}");
         if left_turn || right_turn
         {

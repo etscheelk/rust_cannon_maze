@@ -22,17 +22,6 @@ pub struct KeyInputState
     pub held_actions:       HashSet<ActionCode>,
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq)]
-// pub enum Mod
-// {
-//     LShift,
-//     RShift,
-//     LAlt,
-//     RAlt,
-//     RControl,
-//     LControl,
-// }
-
 /// Block keys when pressed, or a combo is pressed. 
 /// For instance, if I have a combo ALT + D, if I let go of ALT, nothing 
 /// should happen that is bound to D until ALL the keys in the combo are released
@@ -62,7 +51,8 @@ impl crate::FixedUpdate<Self> for KeyInputState
             {
                 if self.held_actions.contains(ac)
                 {
-                    let mods_gone_or_none = self.pressed_mods == KeyMods::NONE || !self.pressed_mods.contains(kc.0);
+                    let mods_gone_or_none = 
+                        self.pressed_mods == KeyMods::NONE || !self.pressed_mods.intersects(kc.0);
                     let button_not_being_held = !self.pressed_buttons.contains(&kc.1);
 
                     if button_not_being_held && mods_gone_or_none
@@ -70,27 +60,6 @@ impl crate::FixedUpdate<Self> for KeyInputState
                         self.held_actions.remove(ac);
                         println!("action removed: {:?}", ac);
                     }
-                    
-
-                    // if self.pressed_mods == KeyMods::NONE
-                    // {
-                    //     if !self.pressed_buttons.contains(&kc.1)
-                    //     {
-                    //         self.held_actions.remove(ac);
-                    //     }
-                    // }
-                    // else
-                    // {
-                    //     if !self.pressed_buttons.contains(&kc.1) && !self.pressed_mods.contains(kc.0)
-                    //     {
-                    //         self.held_actions.remove(ac);
-                    //     }
-                    // }
-                    // if !self.pressed_buttons.contains(&kc.1) && !self.pressed_mods.contains(kc.0)
-                    // {
-                    //     self.held_actions.remove(ac);
-                    //     // println!("removed action {:?}", ac);
-                    // }
                 }
             }
 
@@ -99,12 +68,17 @@ impl crate::FixedUpdate<Self> for KeyInputState
                 // let button_not_blocked: bool = !self.blocked_buttons.contains(b);
                 let button_not_blocked: bool = !self.pressed_buttons.contains(&kc.1);
                 
-                // if the currently-blocked modifiers contain ANY of this combo's mods, 
-                // this combo is blocked
-                // let mod_not_blocked: bool = (self.blocked_mods & *m) == KeyMods::NONE;
+                // // if the currently-blocked modifiers contain ANY of this combo's mods, 
+                // // this combo is blocked
+                // // let mod_not_blocked: bool = (self.blocked_mods & *m) == KeyMods::NONE;
                 let mod_not_blocked: bool = !self.pressed_mods.contains(kc.0);
 
-                button_not_blocked & mod_not_blocked
+                button_not_blocked && mod_not_blocked
+
+                // let button_blocked = self.pressed_buttons.contains(&kc.1);
+                // let mod_blocked = self.pressed_mods.intersects(kc.0);
+                // button_blocked && mod_blocked
+
             };
 
             if is_blocked_combo { continue }
@@ -122,7 +96,10 @@ impl crate::FixedUpdate<Self> for KeyInputState
                 for &ac in &self.key_combos[&kc]
                 {
                     self.held_actions.insert(ac);
+
+                    println!("action added: {:?}", ac);
                 }
+                println!();
 
                 // self.blocked_buttons.insert(*b);
                 self.pressed_mods.insert(kc.0);
@@ -219,6 +196,13 @@ impl ggez::event::EventHandler for KeyInputState
 #[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 pub enum ActionCode
 {
+    Hold(HoldActionCode),
+    Trigger(TriggerActionCode),
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
+pub enum HoldActionCode
+{
     CameraUp,
     CameraDown,
     CameraLeft,
@@ -226,8 +210,29 @@ pub enum ActionCode
     TurnLeft,
     TurnRight,
     Shoot,
+    Click,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
+pub enum TriggerActionCode
+{
     FlipDebugHitboxes,
-    Click
+}
+
+impl From<HoldActionCode> for ActionCode
+{
+    fn from(value: HoldActionCode) -> Self 
+    {
+        ActionCode::Hold(value)
+    }
+}
+
+impl From<TriggerActionCode> for ActionCode
+{
+    fn from(value: TriggerActionCode) -> Self 
+    {
+        ActionCode::Trigger(value)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -295,20 +300,20 @@ impl Default for ComboToAction
         use ggez::input::{mouse::MouseButton, keyboard::{KeyCode, KeyMods}};
         let map = HashMap::from(
             [
-                ((KeyMods::ALT, KeyCode::D).into(), vec![ActionCode::Shoot]),
-                ((KeyMods::NONE, KeyCode::Left).into(), vec![ActionCode::TurnLeft]),
-                ((KeyMods::NONE, KeyCode::Right).into(), vec![ActionCode::TurnRight]),
+                ((KeyMods::ALT, KeyCode::D).into(), vec![HoldActionCode::Shoot.into()]),
+                ((KeyMods::NONE, KeyCode::Left).into(), vec![HoldActionCode::TurnLeft.into()]),
+                ((KeyMods::NONE, KeyCode::Right).into(), vec![HoldActionCode::TurnRight.into()]),
 
                 // ((KeyMods::NONE, KeyCode::D).into(), vec![ActionCode::Shoot]),
 
-                ((KeyMods::NONE, KeyCode::W).into(), vec![ActionCode::CameraUp]),
-                ((KeyMods::NONE, KeyCode::S).into(), vec![ActionCode::CameraDown]),
-                ((KeyMods::NONE, KeyCode::A).into(), vec![ActionCode::CameraLeft]),
-                ((KeyMods::NONE, KeyCode::D).into(), vec![ActionCode::CameraRight]),
+                ((KeyMods::NONE, KeyCode::W).into(), vec![HoldActionCode::CameraUp.into()]),
+                ((KeyMods::NONE, KeyCode::S).into(), vec![HoldActionCode::CameraDown.into()]),
+                ((KeyMods::NONE, KeyCode::A).into(), vec![HoldActionCode::CameraLeft.into()]),
+                ((KeyMods::NONE, KeyCode::D).into(), vec![HoldActionCode::CameraRight.into()]),
 
-                ((KeyMods::NONE, MouseButton::Left).into(), vec![ActionCode::Click]),
+                ((KeyMods::NONE, MouseButton::Left).into(), vec![HoldActionCode::Click.into()]),
 
-                ((KeyMods::ALT, KeyCode::LAlt).into(), vec![ActionCode::FlipDebugHitboxes]),
+                ((KeyMods::ALT, KeyCode::LAlt).into(), vec![TriggerActionCode::FlipDebugHitboxes.into()]),
             ]
         );
 

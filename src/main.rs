@@ -7,7 +7,7 @@ mod input;
 use game_object::{enemy::Enemy, enemy_wall::EnemyWall, grid::{Chunk, Object, PackedU8}, Region, HasPosition};
 use ggez::{glam::{Vec2, Vec3, Vec4}, mint::{Vector2, Vector4}};
 use gui::GUIState;
-use input::{ComboToAction, KeyInputState};
+use input::{ActionCode, ComboToAction, KeyInputState};
 use serde::{Deserialize, Serialize};
 use util::hash_map_tracker::HashMapTracker;
 // use std::collections::HashMap;
@@ -241,7 +241,7 @@ impl ggez::event::EventHandler for MainState
             }
 
             // check debug state
-            if self.key_input_state.held_actions.contains(&input::ActionCode::FlipDebugHitboxes)
+            if self.key_input_state.held_actions.contains(&input::TriggerActionCode::FlipDebugHitboxes.into())
             {
                 self.debug_state.draw_hitboxes = !self.debug_state.draw_hitboxes;
             }
@@ -249,21 +249,26 @@ impl ggez::event::EventHandler for MainState
             // update world pos
             let mut apply_movements = Vec2::ZERO;
             {
-                use input::ActionCode::*;
-                [CameraUp, CameraDown, CameraLeft, CameraRight]
+                use input::HoldActionCode::*;
+                [CameraUp.into(), CameraDown.into(), CameraLeft.into(), CameraRight.into()]
                 .into_iter()
                 .for_each(|ac|
                 {
                     if self.key_input_state.held_actions.contains(&ac)
                     {
-                        match ac
+                        // match ac
+                        if let ActionCode::Hold(hac) = ac
                         {
-                            CameraUp => apply_movements.y -= 1.0,
-                            CameraDown => apply_movements.y += 1.0,
-                            CameraLeft => apply_movements.x -= 1.0,
-                            CameraRight => apply_movements.x += 1.0,
-                            _ => (),
-                        };
+                            match hac
+                            {
+                                CameraUp => apply_movements.y -= 1.0,
+                                CameraDown => apply_movements.y += 1.0,
+                                CameraLeft => apply_movements.x -= 1.0,
+                                CameraRight => apply_movements.x += 1.0,
+                                _ => (),
+                            };
+
+                        }
                     }
                 });
             }
